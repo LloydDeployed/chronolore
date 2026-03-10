@@ -142,6 +142,46 @@ export const updateBlock = (
     { method: "PUT", body: data, auth: true },
   );
 
+// ── Moderation ──
+export const getReviewQueue = (universeSlug: string) =>
+  fetchJson<any>(`/universes/${universeSlug}/moderate/queue`, { auth: true });
+
+export const publishArticle = (universeSlug: string, articleId: string) =>
+  fetchJson<any>(
+    `/universes/${universeSlug}/moderate/articles/${articleId}/publish`,
+    { method: "POST", auth: true },
+  );
+
+export const rejectArticle = (universeSlug: string, articleId: string) =>
+  fetchJson<any>(
+    `/universes/${universeSlug}/moderate/articles/${articleId}/reject`,
+    { method: "POST", auth: true },
+  );
+
+export const publishBlock = (universeSlug: string, blockId: string) =>
+  fetchJson<any>(
+    `/universes/${universeSlug}/moderate/blocks/${blockId}/publish`,
+    { method: "POST", auth: true },
+  );
+
+export const rejectBlock = (universeSlug: string, blockId: string) =>
+  fetchJson<any>(
+    `/universes/${universeSlug}/moderate/blocks/${blockId}/reject`,
+    { method: "POST", auth: true },
+  );
+
+export const bulkModerate = (
+  universeSlug: string,
+  action: "publish" | "reject",
+  articleIds?: string[],
+  blockIds?: string[],
+) =>
+  fetchJson<any>(`/universes/${universeSlug}/moderate/bulk`, {
+    method: "POST",
+    body: { action, articleIds, blockIds },
+    auth: true,
+  });
+
 export const submitBlockForReview = (
   universeSlug: string,
   articleSlug: string,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useProgress } from "../hooks/useProgress";
 import { ProgressPicker } from "../components/ProgressPicker";
 import { ArticleList } from "../components/ArticleList";
@@ -37,6 +37,13 @@ export function UniversePage({ isAuthenticated }: Props) {
               >
                 + New Article
               </button>
+              <Link
+                to={`/${universeSlug}/moderate`}
+                className="btn-secondary"
+                style={{ marginLeft: "0.5rem", display: "inline-block" }}
+              >
+                Review Queue
+              </Link>
             </div>
           )}
 

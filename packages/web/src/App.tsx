@@ -4,6 +4,7 @@ import { NavBar } from "./components/NavBar";
 import { HomePage } from "./pages/HomePage";
 import { UniversePage } from "./pages/UniversePage";
 import { ArticlePage } from "./pages/ArticlePage";
+import { ModeratePage } from "./pages/ModeratePage";
 import "./styles.css";
 
 export function App() {
@@ -11,11 +12,7 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <NavBar
-        user={user}
-        onAuth={setAuth}
-        onLogout={logout}
-      />
+      <NavBar user={user} onAuth={setAuth} onLogout={logout} />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
@@ -25,6 +22,10 @@ export function App() {
         <Route
           path="/:universeSlug/articles/:articleSlug"
           element={<ArticlePage isAuthenticated={isAuthenticated} />}
+        />
+        <Route
+          path="/:universeSlug/moderate"
+          element={<ModeratePage isAuthenticated={isAuthenticated} />}
         />
       </Routes>
     </BrowserRouter>
