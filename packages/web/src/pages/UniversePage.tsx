@@ -1,15 +1,21 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useProgress } from "../hooks/useProgress";
 import { ProgressPicker } from "../components/ProgressPicker";
 import { ArticleList } from "../components/ArticleList";
+import { CreateArticle } from "../components/CreateArticle";
 
-export function UniversePage() {
+interface Props {
+  isAuthenticated: boolean;
+}
+
+export function UniversePage({ isAuthenticated }: Props) {
   const { universeSlug } = useParams<{ universeSlug: string }>();
   const { progress, setEntryProgress, hasAnyProgress } = useProgress(
     universeSlug!,
   );
+  const [showCreate, setShowCreate] = useState(false);
 
-  // Key that changes when progress changes, to trigger article re-fetch
   const progressKey = JSON.stringify(progress);
 
   return (
@@ -23,6 +29,17 @@ export function UniversePage() {
           />
         </aside>
         <main className="content">
+          {isAuthenticated && (
+            <div className="content-actions">
+              <button
+                className="btn-primary"
+                onClick={() => setShowCreate(true)}
+              >
+                + New Article
+              </button>
+            </div>
+          )}
+
           {!hasAnyProgress ? (
             <div className="welcome">
               <h2>Welcome!</h2>
@@ -40,6 +57,13 @@ export function UniversePage() {
           )}
         </main>
       </div>
+
+      {showCreate && (
+        <CreateArticle
+          universeSlug={universeSlug!}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
     </div>
   );
 }

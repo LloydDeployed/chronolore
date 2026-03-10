@@ -3,6 +3,8 @@ import cors from 'cors';
 import universesRouter from './routes/universes.js';
 import articlesRouter from './routes/articles.js';
 import searchRouter from './routes/search.js';
+import authRouter from './routes/auth.js';
+import contributeRouter from './routes/contribute.js';
 
 const app = express();
 const port = process.env.PORT ?? 4001;
@@ -17,6 +19,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/universes', universesRouter);
 app.use('/api/universes/:universeSlug/articles', articlesRouter);
 app.use('/api/universes/:universeSlug/search', searchRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/universes/:universeSlug/contribute', contributeRouter);
 
 app.listen(port, () => {
   console.log(`Chronolore API listening on port ${port}`);
