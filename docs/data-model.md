@@ -252,7 +252,7 @@ For anonymous readers, progress is stored in localStorage as a flat map of entry
 ```json
 {
   "cosmere": {
-    "the-final-empire": 20,
+    "the-final-empire": "chapter-20",
     "well-of-ascension": "complete",
     "elantris": "complete"
   }
@@ -261,7 +261,7 @@ For anonymous readers, progress is stored in localStorage as a flat map of entry
 
 Values:
 
-- `number` — completed through segment N (by sort_order) within that entry
+- `string` (segment slug) — completed through that segment (e.g., `"chapter-20"`, `"prologue"`, `"epilogue"`)
 - `"complete"` — entire entry completed
 - absent / `null` — not started
 

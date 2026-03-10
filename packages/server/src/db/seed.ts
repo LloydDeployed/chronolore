@@ -1,4 +1,5 @@
 import { db } from "./index.js";
+import { eq, and, isNull } from "drizzle-orm";
 import {
   universes,
   series,
@@ -6,6 +7,8 @@ import {
   segments,
   revealPoints,
   articleTypes,
+  articles,
+  contentBlocks,
 } from "./schema.js";
 
 /**
@@ -233,6 +236,284 @@ async function seed() {
     });
   }
   console.log(`\n✓ ${BUILT_IN_ARTICLE_TYPES.length} built-in article types`);
+
+  // ── Sample Articles ──
+  // Helper to find a reveal point by entry slug + chapter slug
+  async function findRevealPoint(entrySlug: string, segSlug?: string) {
+    const [entry] = await db
+      .select()
+      .from(entries)
+      .where(eq(entries.slug, entrySlug));
+    if (!entry) throw new Error(`Entry not found: ${entrySlug}`);
+
+    if (!segSlug) {
+      const [rp] = await db
+        .select()
+        .from(revealPoints)
+        .where(
+          and(
+            eq(revealPoints.entryId, entry.id),
+            isNull(revealPoints.segmentId),
+          ),
+        );
+      return rp;
+    }
+
+    const [seg] = await db
+      .select()
+      .from(segments)
+      .where(and(eq(segments.entryId, entry.id), eq(segments.slug, segSlug)));
+    if (!seg) throw new Error(`Segment not found: ${segSlug}`);
+
+    const [rp] = await db
+      .select()
+      .from(revealPoints)
+      .where(
+        and(
+          eq(revealPoints.entryId, entry.id),
+          eq(revealPoints.segmentId, seg.id),
+        ),
+      );
+    return rp;
+  }
+
+  // Get character article type
+  const [charType] = await db
+    .select()
+    .from(articleTypes)
+    .where(eq(articleTypes.slug, "character"));
+  const [locType] = await db
+    .select()
+    .from(articleTypes)
+    .where(eq(articleTypes.slug, "location"));
+  const [conceptType] = await db
+    .select()
+    .from(articleTypes)
+    .where(eq(articleTypes.slug, "concept"));
+
+  // ── Kelsier ──
+  const kelsierIntro = await findRevealPoint("the-final-empire", "chapter-1");
+  const [kelsier] = await db
+    .insert(articles)
+    .values({
+      universeId: cosmere.id,
+      articleTypeId: charType.id,
+      slug: "kelsier",
+      title: "Kelsier",
+      introducedAt: kelsierIntro.id,
+      status: "published",
+    })
+    .returning();
+
+  const rpCh1 = await findRevealPoint("the-final-empire", "chapter-1");
+  const rpCh3 = await findRevealPoint("the-final-empire", "chapter-3");
+  const rpCh4 = await findRevealPoint("the-final-empire", "chapter-4");
+  const rpCh7 = await findRevealPoint("the-final-empire", "chapter-7");
+  const rpEpilogue = await findRevealPoint("the-final-empire", "epilogue");
+
+  // Overview section
+  const [kOverview] = await db
+    .insert(contentBlocks)
+    .values({
+      articleId: kelsier.id,
+      blockType: "section",
+      revealPointId: rpCh1.id,
+      sortOrder: 0,
+      heading: "Overview",
+      status: "published",
+    })
+    .returning();
+
+  await db.insert(contentBlocks).values([
+    {
+      articleId: kelsier.id,
+      parentId: kOverview.id,
+      blockType: "fact",
+      revealPointId: rpCh1.id,
+      sortOrder: 1,
+      body: "Kelsier is a half-skaa Mistborn and the most infamous thief in the Final Empire. He is charismatic, bold, and driven by a deep hatred of the Lord Ruler and the nobility.",
+      status: "published",
+    },
+    {
+      articleId: kelsier.id,
+      parentId: kOverview.id,
+      blockType: "fact",
+      revealPointId: rpCh3.id,
+      sortOrder: 2,
+      body: "Known as the Survivor of Hathsin, Kelsier is the only person known to have escaped the Pits of Hathsin alive. This feat has made him a legend among the skaa.",
+      status: "published",
+    },
+  ]);
+
+  // Abilities section
+  const [kAbilities] = await db
+    .insert(contentBlocks)
+    .values({
+      articleId: kelsier.id,
+      blockType: "section",
+      revealPointId: rpCh4.id,
+      sortOrder: 10,
+      heading: "Abilities",
+      status: "published",
+    })
+    .returning();
+
+  await db.insert(contentBlocks).values([
+    {
+      articleId: kelsier.id,
+      parentId: kAbilities.id,
+      blockType: "fact",
+      revealPointId: rpCh4.id,
+      sortOrder: 11,
+      body: "Kelsier is a full Mistborn, capable of burning all known Allomantic metals. He Snapped while imprisoned in the Pits of Hathsin.",
+      status: "published",
+    },
+    {
+      articleId: kelsier.id,
+      parentId: kAbilities.id,
+      blockType: "fact",
+      revealPointId: rpCh7.id,
+      sortOrder: 12,
+      body: "He is exceptionally skilled with iron and steel Pushing and Pulling, using coins as deadly projectiles and achieving fluid aerial movement through Steelpushing.",
+      status: "published",
+    },
+  ]);
+
+  // Late-book spoiler section
+  await db.insert(contentBlocks).values({
+    articleId: kelsier.id,
+    blockType: "section",
+    revealPointId: rpEpilogue.id,
+    sortOrder: 20,
+    heading: "Legacy",
+    body: "After his death at the hands of the Lord Ruler, Kelsier becomes a martyr figure for the skaa rebellion. His sacrifice inspires the skaa uprising that ultimately topples the Final Empire. He is revered as the Survivor, and a religion forms around his memory.",
+    status: "published",
+  });
+
+  console.log("  ✓ Article: Kelsier (6 content blocks)");
+
+  // ── Vin ──
+  const vinIntro = await findRevealPoint("the-final-empire", "prologue");
+  const [vin] = await db
+    .insert(articles)
+    .values({
+      universeId: cosmere.id,
+      articleTypeId: charType.id,
+      slug: "vin",
+      title: "Vin",
+      introducedAt: vinIntro.id,
+      status: "published",
+    })
+    .returning();
+
+  const rpPrologue = await findRevealPoint("the-final-empire", "prologue");
+  const rpCh5 = await findRevealPoint("the-final-empire", "chapter-5");
+
+  const [vOverview] = await db
+    .insert(contentBlocks)
+    .values({
+      articleId: vin.id,
+      blockType: "section",
+      revealPointId: rpPrologue.id,
+      sortOrder: 0,
+      heading: "Overview",
+      status: "published",
+    })
+    .returning();
+
+  await db.insert(contentBlocks).values([
+    {
+      articleId: vin.id,
+      parentId: vOverview.id,
+      blockType: "fact",
+      revealPointId: rpPrologue.id,
+      sortOrder: 1,
+      body: "Vin is a young skaa street urchin living in Luthadel. She is small, wary, and distrustful — shaped by a harsh life on the streets and an abusive older brother, Reen.",
+      status: "published",
+    },
+    {
+      articleId: vin.id,
+      parentId: vOverview.id,
+      blockType: "fact",
+      revealPointId: rpCh1.id,
+      sortOrder: 2,
+      body: "Vin possesses a mysterious \"Luck\" that she uses unconsciously to influence people — which is actually Allomancy. She is recruited by Kelsier's crew after he recognizes her as a Mistborn.",
+      status: "published",
+    },
+    {
+      articleId: vin.id,
+      parentId: vOverview.id,
+      blockType: "fact",
+      revealPointId: rpCh5.id,
+      sortOrder: 3,
+      body: "Under Kelsier's mentorship, Vin begins training in Allomancy, learning to burn tin, pewter, and eventually all the basic metals.",
+      status: "published",
+    },
+  ]);
+
+  console.log("  ✓ Article: Vin (4 content blocks)");
+
+  // ── Luthadel ──
+  const luthadel = await findRevealPoint("the-final-empire", "prologue");
+  const [luth] = await db
+    .insert(articles)
+    .values({
+      universeId: cosmere.id,
+      articleTypeId: locType.id,
+      slug: "luthadel",
+      title: "Luthadel",
+      introducedAt: luthadel.id,
+      status: "published",
+    })
+    .returning();
+
+  await db.insert(contentBlocks).values({
+    articleId: luth.id,
+    blockType: "section",
+    revealPointId: rpPrologue.id,
+    sortOrder: 0,
+    heading: "Overview",
+    body: "Luthadel is the capital city of the Final Empire and seat of the Lord Ruler's power. It is a sprawling city of ash-covered streets, noble keeps, and skaa slums. The city is dominated by Kredik Shaw, the Lord Ruler's palace.",
+    status: "published",
+  });
+
+  console.log("  ✓ Article: Luthadel (1 content block)");
+
+  // ── Allomancy ──
+  const allocIntro = await findRevealPoint("the-final-empire", "chapter-1");
+  const [allomancy] = await db
+    .insert(articles)
+    .values({
+      universeId: cosmere.id,
+      articleTypeId: conceptType.id,
+      slug: "allomancy",
+      title: "Allomancy",
+      introducedAt: allocIntro.id,
+      status: "published",
+    })
+    .returning();
+
+  await db.insert(contentBlocks).values([
+    {
+      articleId: allomancy.id,
+      blockType: "section",
+      revealPointId: rpCh1.id,
+      sortOrder: 0,
+      heading: "Overview",
+      body: "Allomancy is a magic system on Scadrial that allows practitioners to gain supernatural abilities by ingesting and \"burning\" specific metals. It is genetic in nature, concentrated among the nobility but also found among skaa due to interbreeding.",
+      status: "published",
+    },
+    {
+      articleId: allomancy.id,
+      blockType: "fact",
+      revealPointId: rpCh4.id,
+      sortOrder: 1,
+      body: "Most Allomancers can only burn one metal and are called Mistings. Rare individuals who can burn all metals are called Mistborn.",
+      status: "published",
+    },
+  ]);
+
+  console.log("  ✓ Article: Allomancy (2 content blocks)");
 
   console.log("\n✅ Seed complete!");
   process.exit(0);

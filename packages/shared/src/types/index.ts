@@ -64,7 +64,8 @@ export interface ProgressState {
 }
 
 export interface EntryProgress {
-  [entrySlug: string]: number | "complete";
+  /** Maps entry slug to segment slug (e.g. "chapter-5", "prologue") or "complete" */
+  [entrySlug: string]: string;  // segment slug | "complete"
 }
 
 // ── Articles ──

@@ -1,8 +1,20 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HomePage } from "./pages/HomePage";
+import { UniversePage } from "./pages/UniversePage";
+import { ArticlePage } from "./pages/ArticlePage";
+import "./styles.css";
+
 export function App() {
   return (
-    <div>
-      <h1>Chronolore</h1>
-      <p>Spoiler-safe wiki. Coming soon.</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/:universeSlug" element={<UniversePage />} />
+        <Route
+          path="/:universeSlug/articles/:articleSlug"
+          element={<ArticlePage />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
