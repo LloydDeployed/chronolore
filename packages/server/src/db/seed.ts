@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+config({ path: "../../.env" });
+
 import { db } from "./index.js";
 import { eq, and, isNull } from "drizzle-orm";
 import {
