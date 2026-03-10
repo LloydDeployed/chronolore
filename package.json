@@ -1,0 +1,21 @@
+{
+  "name": "chronolore",
+  "private": true,
+  "description": "Spoiler-safe wiki platform",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.30.1",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @chronolore/server db:generate",
+    "db:migrate": "pnpm --filter @chronolore/server db:migrate",
+    "db:seed": "pnpm --filter @chronolore/server db:seed"
+  }
+}
