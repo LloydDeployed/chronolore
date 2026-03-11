@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTitle } from "../hooks/useTitle";
 import {
   getReviewQueue,
   publishArticle,
@@ -33,6 +34,7 @@ interface QueueBlock {
 
 export function ModeratePage({ isAuthenticated }: Props) {
   const { universeSlug } = useParams<{ universeSlug: string }>();
+  useTitle("Review Queue");
   const [queue, setQueue] = useState<{
     articles: QueueArticle[];
     blocks: QueueBlock[];

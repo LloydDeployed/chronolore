@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useProgress } from "../hooks/useProgress";
+import { useTitle } from "../hooks/useTitle";
 import { ArticleView } from "../components/ArticleView";
 import { BlockEditor } from "../components/BlockEditor";
 
@@ -13,6 +14,7 @@ export function ArticlePage({ isAuthenticated }: Props) {
     universeSlug: string;
     articleSlug: string;
   }>();
+  useTitle(articleSlug ?? "");
   const { progress } = useProgress(universeSlug!);
   const progressKey = JSON.stringify(progress);
   const [showEditor, setShowEditor] = useState(false);

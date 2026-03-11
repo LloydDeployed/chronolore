@@ -38,38 +38,100 @@ a:hover {
 }
 
 /* ── Home Page ── */
+.home-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
 .hero {
   text-align: center;
-  padding: 4rem 2rem 2rem;
+  padding: 5rem 2rem 3rem;
 }
 
 .hero h1 {
-  font-size: 2.5rem;
+  font-size: 3rem;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.hero-tagline {
+  font-size: 1.4rem;
+  color: var(--text);
   margin-bottom: 0.5rem;
 }
 
-.hero p {
+.hero-sub {
   color: var(--text-muted);
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
-.universe-list {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+/* How It Works */
+.how-it-works {
+  padding: 2rem 0 3rem;
 }
 
-.universe-list h2 {
-  margin-bottom: 1rem;
+.how-it-works h2 {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.universe-card {
-  display: block;
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.step {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
-  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.step-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.step h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.step p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Universe List */
+.universe-list {
+  padding: 2rem 0 3rem;
+}
+
+.universe-list h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.universe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.universe-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
   transition: border-color 0.2s;
   color: var(--text);
 }
@@ -85,6 +147,84 @@ a:hover {
 .universe-card p {
   color: var(--text-muted);
   font-size: 0.9rem;
+  flex: 1;
+}
+
+.universe-cta {
+  color: var(--accent);
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+/* Open Source */
+.open-source {
+  text-align: center;
+  padding: 2rem 0 4rem;
+  border-top: 1px solid var(--border);
+}
+
+.open-source h2 {
+  margin-bottom: 0.75rem;
+}
+
+.open-source p {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+/* ── Toast ── */
+.toast-container {
+  position: fixed;
+  top: 4rem;
+  right: 1rem;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  animation: toast-in 0.2s ease-out;
+  max-width: 360px;
+}
+
+.toast-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.toast-success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(1rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── 404 ── */
+.not-found {
+  text-align: center;
+  padding: 6rem 2rem;
+}
+
+.not-found h1 {
+  font-size: 4rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.not-found p {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
 }
 
 /* ── Universe Page Layout ── */

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { NavBar } from "./components/NavBar";
+import { ToastContainer } from "./components/Toast";
+import { NotFound } from "./components/NotFound";
 import { HomePage } from "./pages/HomePage";
 import { UniversePage } from "./pages/UniversePage";
 import { ArticlePage } from "./pages/ArticlePage";
@@ -13,6 +15,7 @@ export function App() {
   return (
     <BrowserRouter>
       <NavBar user={user} onAuth={setAuth} onLogout={logout} />
+      <ToastContainer />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
@@ -27,6 +30,7 @@ export function App() {
           path="/:universeSlug/moderate"
           element={<ModeratePage isAuthenticated={isAuthenticated} />}
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useProgress } from "../hooks/useProgress";
+import { useTitle } from "../hooks/useTitle";
 import { ProgressPicker } from "../components/ProgressPicker";
 import { ArticleList } from "../components/ArticleList";
 import { CreateArticle } from "../components/CreateArticle";
@@ -14,6 +15,7 @@ export function UniversePage({ isAuthenticated }: Props) {
   const { progress, setEntryProgress, hasAnyProgress } = useProgress(
     universeSlug!,
   );
+  useTitle(universeSlug ?? "");
   const [showCreate, setShowCreate] = useState(false);
 
   const progressKey = JSON.stringify(progress);

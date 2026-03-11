@@ -23,10 +23,69 @@ Fan wikis are spoiler minefields. You look up a character from the book you're r
 
 - **Frontend:** React + TypeScript (Vite)
 - **Backend:** Node.js + Express + TypeScript
-- **Database:** PostgreSQL with JSONB
-- **Auth:** Anonymous reading (progress in localStorage), accounts for contributing
-- **License:** MIT (code), CC-BY-SA 4.0 (user-contributed content)
+- **Database:** PostgreSQL + Drizzle ORM
+- **Auth:** JWT (anonymous reading, accounts for contributing)
 
-## Project Status
+## Quick Start
 
-🚧 Early development — data model and architecture phase.
+```bash
+# Prerequisites: Node 20+, pnpm, Docker
+
+git clone https://github.com/LloydDeployed/chronolore.git
+cd chronolore
+
+# Configure
+cp .env.example .env
+# Edit .env with your database URL and JWT secret
+
+# Start database
+docker compose up -d
+
+# Install and build
+pnpm install
+pnpm db:migrate    # Push schema to database
+pnpm db:seed       # Seed with Cosmere / Mistborn Era 1
+
+# Development
+pnpm dev           # Frontend on :4000, API on :4001
+```
+
+## Production Deployment
+
+```bash
+# Set environment variables
+export POSTGRES_PASSWORD=your-secure-password
+export JWT_SECRET=your-secure-secret
+
+# Build and run
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Push schema and seed (first time only)
+docker compose -f docker-compose.prod.yml exec app \
+  node -e "import('drizzle-kit').then(m => m.push())"
+```
+
+The app serves on port 4001. Put it behind a reverse proxy (Caddy, nginx) for SSL.
+
+## Architecture
+
+```
+Universe (e.g., "The Cosmere")
+├── Series (e.g., "Mistborn Era 1") — organizational grouping, no spoiler role
+│   ├── Entry (e.g., "The Final Empire") — book, movie, season, game
+│   │   └── Segment (e.g., "Chapter 5") — chapter, episode, act
+│   │       └── Reveal Point — tags content to this moment
+```
+
+Every article and content block is tagged with a **reveal point**. Reader progress is stored as a set of completed entries/segments. Content is visible only if its reveal point is within the reader's progress set.
+
+See [docs/data-model.md](docs/data-model.md) and [docs/architecture.md](docs/architecture.md) for details.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for content guidelines and development setup.
+
+## License
+
+- **Code:** MIT
+- **Content:** [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
