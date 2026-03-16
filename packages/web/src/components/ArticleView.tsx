@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { getArticle, updatePassage } from "../api/client";
-import { TiptapEditor } from "./TiptapEditor";
+import { Link } from "react-router-dom";
+import { getArticle } from "../api/client";
 import { TiptapRenderer } from "./TiptapRenderer";
 import type { Section, Passage, Infobox, InfoboxField, InfoboxFieldMode } from "@chronolore/shared";
 
@@ -10,6 +10,7 @@ interface Props {
   progressKey: string;
   currentUserId?: string;
   isAuthenticated: boolean;
+  isModerator?: boolean;
 }
 
 interface ArticleData {
@@ -33,26 +34,21 @@ function resolveInfoboxFields(fields: InfoboxField[]): { label: string; values: 
 
   const result: { label: string; values: string[] }[] = [];
   for (const [, group] of grouped) {
-    // Sort by sortOrder ascending
     group.entries.sort((a, b) => a.sortOrder - b.sortOrder);
 
     if (group.mode === "replace") {
-      // Latest value wins
       const last = group.entries[group.entries.length - 1];
       result.push({ label: group.label, values: [last.fieldValue] });
     } else {
-      // Append: show all
       result.push({ label: group.label, values: group.entries.map((e) => e.fieldValue) });
     }
   }
   return result;
 }
 
-export function ArticleView({ universeSlug, articleSlug, progressKey, currentUserId, isAuthenticated }: Props) {
+export function ArticleView({ universeSlug, articleSlug, progressKey, currentUserId, isAuthenticated, isModerator }: Props) {
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [editingPassageId, setEditingPassageId] = useState<string | null>(null);
-  const [editBody, setEditBody] = useState("");
 
   useEffect(() => {
     setError(null);
@@ -61,51 +57,15 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
       .catch(() => setError("Article not found at your current progress."));
   }, [universeSlug, articleSlug, progressKey]);
 
-  const startEditing = (passage: Passage) => {
-    setEditingPassageId(passage.id);
-    setEditBody(passage.body);
-  };
-
-  const cancelEditing = () => {
-    setEditingPassageId(null);
-    setEditBody("");
-  };
-
-  const savePassage = async (passageId: string) => {
-    try {
-      await updatePassage(universeSlug, articleSlug, passageId, { body: editBody });
-      setEditingPassageId(null);
-      const updated = await getArticle(universeSlug, articleSlug);
-      setArticle(updated);
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
   if (error) return <div className="article-error">{error}</div>;
   if (!article) return <div>Loading...</div>;
 
   const infoboxFields = article.infobox ? resolveInfoboxFields(article.infobox.fields) : [];
+  const canEdit = isAuthenticated && currentUserId && article.sections.some(
+    (s) => s.passages.some((p: Passage) => p.createdBy === currentUserId)
+  ) || isModerator;
 
   const renderPassage = (passage: Passage) => {
-    const canEdit = isAuthenticated && currentUserId && passage.createdBy === currentUserId;
-    const isEditing = editingPassageId === passage.id;
-
-    if (isEditing) {
-      return (
-        <div key={passage.id} className="passage-edit-form">
-          <div className="form-field">
-            <label>Content</label>
-            <TiptapEditor content={editBody} onChange={setEditBody} editable={true} />
-          </div>
-          <div className="form-actions">
-            <button className="btn-primary btn-sm" onClick={() => savePassage(passage.id)}>Save</button>
-            <button className="btn-secondary btn-sm" onClick={cancelEditing}>Cancel</button>
-          </div>
-        </div>
-      );
-    }
-
     const statusBadge = passage.status !== "published" ? (
       <span className={`status-badge status-${passage.status}`}>{passage.status}</span>
     ) : null;
@@ -133,14 +93,9 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
     return (
       <div key={passage.id} className="passage-wrapper">
         {content}
-        {(statusBadge || canEdit) && (
+        {statusBadge && (
           <div className="passage-meta">
             {statusBadge}
-            {canEdit && (
-              <button className="btn-secondary btn-sm edit-passage-btn" onClick={() => startEditing(passage)}>
-                Edit
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -154,6 +109,11 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
           {article.articleType.icon} {article.articleType.name}
         </span>
         <h1>{article.title}</h1>
+        {canEdit && (
+          <Link to={`/${universeSlug}/${articleSlug}/edit`} className="btn-secondary btn-sm edit-article-link">
+            ✏️ Edit
+          </Link>
+        )}
       </header>
 
       <div className="article-layout">
