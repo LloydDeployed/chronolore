@@ -52,7 +52,7 @@ export function CreateArticle({ universeSlug, onClose }: Props) {
         introducedAtEntry: introEntry,
         introducedAtSegment: introSegment || undefined,
       });
-      navigate(`/${universeSlug}/articles/${article.slug}`);
+      navigate(`/${universeSlug}/articles/${article.slug}/edit`);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -78,6 +78,7 @@ export function CreateArticle({ universeSlug, onClose }: Props) {
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               required
+              autoFocus
               placeholder="e.g., Sazed"
             />
           </div>

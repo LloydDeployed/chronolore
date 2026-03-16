@@ -8,7 +8,10 @@
   },
   "packageManager": "pnpm@10.30.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "bcrypt"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "bcrypt"
+    ]
   },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
@@ -16,6 +19,11 @@
     "lint": "pnpm -r lint",
     "db:generate": "pnpm --filter @chronolore/server db:generate",
     "db:migrate": "pnpm --filter @chronolore/server db:migrate",
-    "db:seed": "pnpm --filter @chronolore/server db:seed"
+    "db:seed": "pnpm --filter @chronolore/server db:seed",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
   }
 }

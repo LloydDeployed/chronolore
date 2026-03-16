@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import type { EntryProgress, ProgressState } from "@chronolore/shared";
 
 const STORAGE_KEY = "chronolore-progress";
@@ -21,11 +21,16 @@ export function useProgress(universeSlug: string) {
     return loadProgress()[universeSlug] ?? {};
   });
 
-  useEffect(() => {
-    const all = loadProgress();
-    all[universeSlug] = progress;
-    saveProgress(all);
-  }, [progress, universeSlug]);
+  // Save synchronously so localStorage is up-to-date before any fetch reads it
+  const updateProgress = useCallback(
+    (next: EntryProgress) => {
+      setProgressState(next);
+      const all = loadProgress();
+      all[universeSlug] = next;
+      saveProgress(all);
+    },
+    [universeSlug],
+  );
 
   const setEntryProgress = useCallback(
     (entrySlug: string, value: string | null) => {
@@ -36,10 +41,14 @@ export function useProgress(universeSlug: string) {
         } else {
           next[entrySlug] = value;
         }
+        // Save synchronously
+        const all = loadProgress();
+        all[universeSlug] = next;
+        saveProgress(all);
         return next;
       });
     },
-    [],
+    [universeSlug],
   );
 
   const clearProgress = useCallback(() => {

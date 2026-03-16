@@ -2,6 +2,7 @@ import { join, resolve } from 'path';
 import { existsSync } from 'fs';
 import express from 'express';
 import cors from 'cors';
+import { checkConnection } from './db/index.js';
 import universesRouter from './routes/universes.js';
 import articlesRouter from './routes/articles.js';
 import searchRouter from './routes/search.js';
@@ -12,11 +13,19 @@ import moderateRouter from './routes/moderate.js';
 const app = express();
 const port = process.env.PORT ?? 4001;
 
+// Check database connectivity at startup
+checkConnection();
+
 app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.use((req, _res, next) => {
+  console.error(`→ ${req.method} ${req.url}`);
+  next();
 });
 
 app.use('/api/universes', universesRouter);

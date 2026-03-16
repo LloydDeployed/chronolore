@@ -7,8 +7,15 @@ const router: Router = Router();
 
 // GET /api/universes
 router.get("/", async (_req: Request, res: Response) => {
-  const rows = await db.select().from(universes).orderBy(asc(universes.name));
-  res.json(rows);
+  console.log("GET /api/universes - starting query");
+  try {
+    const rows = await db.select().from(universes).orderBy(asc(universes.name));
+    console.log("GET /api/universes - got", rows.length, "rows");
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /api/universes - error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /api/universes/:universeSlug

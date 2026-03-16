@@ -58,14 +58,12 @@ export interface RevealPoint {
 
 // ── Progress ──
 
-/** Client-side progress: flat map of entry slugs to segment progress */
 export interface ProgressState {
   [universeSlug: string]: EntryProgress;
 }
 
 export interface EntryProgress {
-  /** Maps entry slug to segment slug (e.g. "chapter-5", "prologue") or "complete" */
-  [entrySlug: string]: string;  // segment slug | "complete"
+  [entrySlug: string]: string;
 }
 
 // ── Articles ──
@@ -78,7 +76,7 @@ export interface ArticleType {
   icon?: string;
 }
 
-export type ArticleStatus = "draft" | "review" | "published";
+export type ArticleStatus = "draft" | "review" | "published" | "rejected";
 
 export interface Article {
   id: string;
@@ -86,30 +84,88 @@ export interface Article {
   articleTypeId: string;
   slug: string;
   title: string;
-  introducedAt: string; // reveal point ID
+  introducedAt: string | null; // null = evergreen
   status: ArticleStatus;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export type BlockType = "section" | "fact" | "relationship" | "image" | "quote";
+// ── Sections & Passages (v2) ──
 
-export interface ContentBlock {
+export interface Section {
   id: string;
   articleId: string;
-  parentId?: string;
-  blockType: BlockType;
-  revealPointId: string;
+  heading: string;
   sortOrder: number;
-  heading?: string;
-  body?: string;
-  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  passages?: Passage[];
+}
+
+export type PassageType = "prose" | "quote" | "note";
+
+export interface Passage {
+  id: string;
+  sectionId: string;
+  body: string;
+  revealPointId: string | null;
+  sortOrder: number;
   status: ArticleStatus;
+  passageType: PassageType;
+  rejectionReason?: string;
+  publishedRevisionId?: string | null;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
-  children?: ContentBlock[];
+  /** Latest revision (for contributor view) */
+  latestRevision?: PassageRevision | null;
+  /** Published revision body (for diff display when editing a published passage) */
+  publishedBody?: string | null;
+}
+
+export interface PassageRevision {
+  id: string;
+  passageId: string;
+  body: string;
+  passageType: PassageType;
+  status: ArticleStatus;
+  rejectionReason?: string;
+  createdBy?: string;
+  createdAt: string;
+  publishedAt?: string | null;
+}
+
+// ── Infoboxes (v2) ──
+
+export interface Infobox {
+  id: string;
+  articleId: string;
+  imageUrl?: string;
+  status: ArticleStatus;
+  rejectionReason?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  fields?: InfoboxField[];
+}
+
+export type InfoboxFieldMode = "replace" | "append";
+
+export interface InfoboxField {
+  id: string;
+  infoboxId: string;
+  fieldKey: string;
+  fieldLabel: string;
+  fieldValue: string;
+  mode: InfoboxFieldMode;
+  revealPointId: string | null;
+  sortOrder: number;
+  status: ArticleStatus;
+  rejectionReason?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Users ──

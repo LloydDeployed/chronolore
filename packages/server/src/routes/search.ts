@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { db } from "../db/index.js";
 import { articles, articleTypes, universes } from "../db/schema.js";
-import { eq, and, inArray, asc, ilike } from "drizzle-orm";
+import { eq, and, inArray, asc, ilike, isNull, or } from "drizzle-orm";
 import {
   resolveProgress,
   type ProgressRequest,
@@ -46,7 +46,7 @@ router.get("/", async (req: Request, res: Response) => {
       and(
         eq(articles.universeId, universe.id),
         eq(articles.status, "published"),
-        inArray(articles.introducedAt, rpIds),
+        or(isNull(articles.introducedAt), inArray(articles.introducedAt, rpIds)),
         ilike(articles.title, pattern),
       ),
     )

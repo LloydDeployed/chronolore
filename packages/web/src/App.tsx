@@ -7,6 +7,8 @@ import { HomePage } from "./pages/HomePage";
 import { UniversePage } from "./pages/UniversePage";
 import { ArticlePage } from "./pages/ArticlePage";
 import { ModeratePage } from "./pages/ModeratePage";
+import { DraftsPage } from "./pages/DraftsPage";
+import { EditArticlePage } from "./pages/EditArticlePage";
 import "./styles.css";
 
 export function App() {
@@ -27,8 +29,16 @@ export function App() {
           element={<ArticlePage isAuthenticated={isAuthenticated} />}
         />
         <Route
+          path="/:universeSlug/articles/:articleSlug/edit"
+          element={<EditArticlePage isAuthenticated={isAuthenticated} />}
+        />
+        <Route
           path="/:universeSlug/moderate"
           element={<ModeratePage isAuthenticated={isAuthenticated} />}
+        />
+        <Route
+          path="/:universeSlug/drafts"
+          element={<DraftsPage isAuthenticated={isAuthenticated} />}
         />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -1,0 +1,111 @@
+/* ── Tiptap Editor ── */
+
+.tiptap-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.tiptap-toolbar button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tiptap-toolbar button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.tiptap-toolbar button.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.tiptap-editor .ProseMirror {
+  padding: 12px;
+  min-height: 120px;
+  outline: none;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.tiptap-editor .ProseMirror p {
+  margin: 0 0 0.5em;
+}
+
+.tiptap-editor .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--text-muted);
+}
+
+.tiptap-editor .ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.5;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── Tiptap Renderer (read-only) ── */
+
+.tiptap-renderer p {
+  margin: 0 0 0.5em;
+}
+
+.tiptap-renderer p:last-child {
+  margin-bottom: 0;
+}
+
+.tiptap-renderer ul,
+.tiptap-renderer ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.tiptap-renderer blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--text-muted);
+}
+
+.tiptap-renderer a {
+  color: var(--accent);
+  text-decoration: underline;
+}

@@ -40,6 +40,13 @@ export function UniversePage({ isAuthenticated }: Props) {
                 + New Article
               </button>
               <Link
+                to={`/${universeSlug}/drafts`}
+                className="btn-secondary"
+                style={{ marginLeft: "0.5rem", display: "inline-block" }}
+              >
+                My Drafts
+              </Link>
+              <Link
                 to={`/${universeSlug}/moderate`}
                 className="btn-secondary"
                 style={{ marginLeft: "0.5rem", display: "inline-block" }}
