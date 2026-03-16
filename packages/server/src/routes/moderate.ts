@@ -14,7 +14,7 @@ import {
   entries,
   segments,
 } from "../db/schema.js";
-import { eq, and, inArray, asc, desc } from "drizzle-orm";
+import { eq, and, not, inArray, asc, desc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 const router: Router = Router({ mergeParams: true });
@@ -832,6 +832,20 @@ router.post(
 
     if (!updated)
       return res.status(404).json({ error: "Field not found" });
+
+    // Auto-publish the parent infobox if it isn't already published.
+    // The infobox is a container — it must be published for its fields
+    // to appear in the article view.
+    await db
+      .update(infoboxes)
+      .set({ status: "published", updatedAt: new Date() })
+      .where(
+        and(
+          eq(infoboxes.id, updated.infoboxId),
+          not(eq(infoboxes.status, "published")),
+        ),
+      );
+
     res.json(updated);
   },
 );
