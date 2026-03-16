@@ -1,0 +1,9 @@
+# Chronolore worktrunk config
+
+[post-create]
+# Install deps in new worktrees
+deps = "pnpm install --frozen-lockfile"
+
+[aliases]
+dev = "pnpm dev"
+build = "pnpm --filter @chronolore/web build"
