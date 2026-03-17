@@ -147,7 +147,7 @@ export const createArticle = (
 export const createSection = (
   universeSlug: string,
   articleSlug: string,
-  data: { heading: string; sortOrder?: number },
+  data: { heading: string; sortOrder?: number; parentId?: string | null },
 ) =>
   fetchJson<Section>(
     `/universes/${universeSlug}/contribute/${articleSlug}/sections`,
@@ -305,7 +305,7 @@ export const updateSection = (
   universeSlug: string,
   articleSlug: string,
   sectionId: string,
-  data: { heading?: string; sortOrder?: number },
+  data: { heading?: string; sortOrder?: number; parentId?: string | null },
 ) =>
   fetchJson<Section>(
     `/universes/${universeSlug}/contribute/${articleSlug}/sections/${sectionId}`,

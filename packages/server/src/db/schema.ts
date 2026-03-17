@@ -249,12 +249,17 @@ export const sections = pgTable(
     articleId: uuid("article_id")
       .notNull()
       .references(() => articles.id, { onDelete: "cascade" }),
+    /** Null = top-level section. Non-null = subsection of parent. Max depth 3 (H2→H3→H4). */
+    parentId: uuid("parent_id"),
     heading: text("heading").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
-  (t) => [index("idx_sections_article").on(t.articleId)],
+  (t) => [
+    index("idx_sections_article").on(t.articleId),
+    index("idx_sections_parent").on(t.parentId),
+  ],
 );
 
 // ── Passage Containers (v2.2) ──

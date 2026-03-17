@@ -26,6 +26,37 @@ const router: Router = Router({ mergeParams: true });
 
 router.use(resolveProgress);
 
+/**
+ * Build a nested section tree from a flat list of sections.
+ */
+function buildSectionTree<T extends { id: string; parentId?: string | null; sortOrder: number }>(
+  flatSections: T[],
+): (T & { children: (T & { children: any[] })[] })[] {
+  const map = new Map<string, T & { children: any[] }>();
+  const roots: (T & { children: any[] })[] = [];
+
+  for (const s of flatSections) {
+    map.set(s.id, { ...s, children: [] });
+  }
+
+  for (const s of flatSections) {
+    const node = map.get(s.id)!;
+    if (s.parentId && map.has(s.parentId)) {
+      map.get(s.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  const sortChildren = (nodes: (T & { children: any[] })[]) => {
+    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const node of nodes) sortChildren(node.children);
+  };
+  sortChildren(roots);
+
+  return roots;
+}
+
 // GET /api/universes/:universeSlug/articles/:articleSlug/reveal-points
 // Returns distinct reveal points used by this article's passages + infobox fields
 router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest, res: Response) => {
@@ -350,7 +381,7 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
     return p;
   });
 
-  // Group passages by section, filter out empty sections
+  // Group passages by section
   const passagesBySection = new Map<string, typeof resolvedPassages>();
   for (const p of resolvedPassages) {
     if (!passagesBySection.has(p.sectionId)) passagesBySection.set(p.sectionId, []);
@@ -363,13 +394,29 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
     containersBySection.get(c.sectionId)!.push(c);
   }
 
-  const enrichedSections = articleSections
-    .map((s) => ({
-      ...s,
-      passages: passagesBySection.get(s.id) ?? [],
-      containers: containersBySection.get(s.id) ?? [],
-    }))
-    .filter((s) => s.passages.length > 0); // Section visible only if it has visible passages
+  // Build flat sections with passages and containers
+  const flatSections = articleSections.map((s) => ({
+    ...s,
+    passages: passagesBySection.get(s.id) ?? [],
+    containers: containersBySection.get(s.id) ?? [],
+  }));
+
+  // Build tree, then prune sections with no visible passages (and no children with visible passages)
+  const tree = buildSectionTree(flatSections);
+
+  type SectionNode = typeof tree[number];
+  function hasVisibleContent(node: SectionNode): boolean {
+    if (node.passages.length > 0) return true;
+    return node.children.some(hasVisibleContent);
+  }
+
+  function pruneEmpty(nodes: SectionNode[]): SectionNode[] {
+    return nodes
+      .filter(hasVisibleContent)
+      .map((n) => ({ ...n, children: pruneEmpty(n.children) }));
+  }
+
+  const enrichedSections = pruneEmpty(tree);
 
   res.json({
     ...article,

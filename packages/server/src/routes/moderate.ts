@@ -21,6 +21,37 @@ const router: Router = Router({ mergeParams: true });
 
 router.use(requireAuth);
 
+/**
+ * Build a nested section tree from a flat list of sections.
+ */
+function buildSectionTree<T extends { id: string; parentId?: string | null; sortOrder: number }>(
+  flatSections: T[],
+): (T & { children: (T & { children: any[] })[] })[] {
+  const map = new Map<string, T & { children: any[] }>();
+  const roots: (T & { children: any[] })[] = [];
+
+  for (const s of flatSections) {
+    map.set(s.id, { ...s, children: [] });
+  }
+
+  for (const s of flatSections) {
+    const node = map.get(s.id)!;
+    if (s.parentId && map.has(s.parentId)) {
+      map.get(s.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  const sortChildren = (nodes: (T & { children: any[] })[]) => {
+    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const node of nodes) sortChildren(node.children);
+  };
+  sortChildren(roots);
+
+  return roots;
+}
+
 /** Check if user is a moderator or admin for the given universe (or globally) */
 async function isModerator(
   userId: string,
@@ -415,8 +446,8 @@ router.get("/articles/:articleSlug", async (req: AuthRequest, res: Response) => 
         .orderBy(asc(infoboxFields.sortOrder));
     }
 
-    // Build structured response
-    const sectionsWithPassages = allSections.map(s => ({
+    // Build structured response with nested sections
+    const flatSectionsWithPassages = allSections.map(s => ({
       ...s,
       passages: allPassages
         .filter(p => p.passage.sectionId === s.id)
@@ -427,6 +458,8 @@ router.get("/articles/:articleSlug", async (req: AuthRequest, res: Response) => 
             : null,
         })),
     }));
+
+    const sectionsWithPassages = buildSectionTree(flatSectionsWithPassages);
 
     const fieldsWithReveal = allFields.map(f => ({
       ...f.field,

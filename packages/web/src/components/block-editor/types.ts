@@ -3,6 +3,7 @@ import type { Section, Passage, PassageContainer, Infobox, InfoboxField, Passage
 export interface SectionWithPassages extends Section {
   passages: Passage[];
   containers?: PassageContainer[];
+  children?: SectionWithPassages[];
 }
 
 export interface InfoboxWithFields extends Infobox {

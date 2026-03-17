@@ -96,11 +96,13 @@ export interface Article {
 export interface Section {
   id: string;
   articleId: string;
+  parentId?: string | null;
   heading: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
   passages?: Passage[];
+  children?: Section[];
 }
 
 export type PassageType = "prose" | "quote" | "note";

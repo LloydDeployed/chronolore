@@ -1,10 +1,15 @@
 import type { Section, Passage, Infobox, InfoboxField, InfoboxFieldMode } from "@chronolore/shared";
 import { TiptapRenderer } from "./TiptapRenderer";
 
+interface SectionWithChildren extends Section {
+  passages: Passage[];
+  children?: SectionWithChildren[];
+}
+
 interface ArticlePreviewProps {
   title: string;
   articleType?: { name: string; icon: string };
-  sections: (Section & { passages: Passage[] })[];
+  sections: SectionWithChildren[];
   infobox?: (Infobox & { fields: InfoboxField[] }) | null;
 }
 
@@ -48,6 +53,18 @@ function renderPassage(passage: Passage) {
     default:
       return <div key={passage.id} className="passage-prose"><TiptapRenderer content={passage.body} /></div>;
   }
+}
+
+function renderSection(section: SectionWithChildren, depth: number = 1) {
+  const HeadingTag = depth === 1 ? "h2" : depth === 2 ? "h3" : "h4";
+
+  return (
+    <section key={section.id} className={`article-section article-section--depth-${depth}`}>
+      <HeadingTag className="section-heading">{section.heading}</HeadingTag>
+      {section.passages.map(renderPassage)}
+      {section.children?.map((child) => renderSection(child, depth + 1))}
+    </section>
+  );
 }
 
 export function ArticlePreview({ title, articleType, sections, infobox }: ArticlePreviewProps) {
@@ -98,12 +115,7 @@ export function ArticlePreview({ title, articleType, sections, infobox }: Articl
           {sections.length === 0 ? (
             <p className="empty-state">No content yet.</p>
           ) : (
-            sections.map((section) => (
-              <section key={section.id} className="article-section">
-                <h2 className="section-heading">{section.heading}</h2>
-                {section.passages.map(renderPassage)}
-              </section>
-            ))
+            sections.map((section) => renderSection(section))
           )}
         </div>
       </div>

@@ -13,11 +13,17 @@ interface Props {
   isModerator?: boolean;
 }
 
+interface SectionWithChildren extends Section {
+  passages: Passage[];
+  containers?: PassageContainer[];
+  children: SectionWithChildren[];
+}
+
 interface ArticleData {
   title: string;
   slug: string;
   articleType: { name: string; icon: string };
-  sections: (Section & { passages: Passage[]; containers?: PassageContainer[] })[];
+  sections: SectionWithChildren[];
   infobox: (Infobox & { fields: InfoboxField[] }) | null;
 }
 
@@ -46,6 +52,15 @@ function resolveInfoboxFields(fields: InfoboxField[]): { label: string; values: 
   return result;
 }
 
+/** Recursively check if any passage belongs to a user */
+function hasUserPassage(sections: SectionWithChildren[], userId: string): boolean {
+  for (const s of sections) {
+    if (s.passages.some((p) => p.createdBy === userId)) return true;
+    if (s.children && hasUserPassage(s.children, userId)) return true;
+  }
+  return false;
+}
+
 export function ArticleView({ universeSlug, articleSlug, progressKey, currentUserId, isAuthenticated, isModerator }: Props) {
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +76,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
   if (!article) return <div>Loading...</div>;
 
   const infoboxFields = article.infobox ? resolveInfoboxFields(article.infobox.fields) : [];
-  const canEdit = isAuthenticated && currentUserId && article.sections.some(
-    (s) => s.passages.some((p: Passage) => p.createdBy === currentUserId)
-  ) || isModerator;
+  const canEdit = isAuthenticated && currentUserId && hasUserPassage(article.sections, currentUserId) || isModerator;
 
   const renderPassage = (passage: Passage, inParagraphContainer = false) => {
     const statusBadge = passage.status !== "published" ? (
@@ -154,7 +167,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
   };
 
   /** Render section content, grouping passages by containers */
-  const renderSectionContent = (section: ArticleData["sections"][number]) => {
+  const renderSectionContent = (section: SectionWithChildren) => {
     const containers = section.containers ?? [];
     const containerMap = new Map(containers.map((c) => [c.id, c]));
 
@@ -212,6 +225,18 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
     });
   };
 
+  const renderSection = (section: SectionWithChildren, depth: number = 1) => {
+    const HeadingTag = depth === 1 ? "h2" : depth === 2 ? "h3" : "h4";
+
+    return (
+      <section key={section.id} className={`article-section article-section--depth-${depth}`}>
+        <HeadingTag className="section-heading">{section.heading}</HeadingTag>
+        {renderSectionContent(section)}
+        {section.children?.map((child) => renderSection(child, depth + 1))}
+      </section>
+    );
+  };
+
   return (
     <article className="article-view">
       <header>
@@ -264,12 +289,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
               No content available at your current progress.
             </p>
           ) : (
-            article.sections.map((section) => (
-              <section key={section.id} className="article-section">
-                <h2 className="section-heading">{section.heading}</h2>
-                {renderSectionContent(section)}
-              </section>
-            ))
+            article.sections.map((section) => renderSection(section))
           )}
         </div>
       </div>

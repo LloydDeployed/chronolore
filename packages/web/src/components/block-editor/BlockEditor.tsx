@@ -52,12 +52,14 @@ interface PassageWithReveal extends Passage {
 interface SectionData {
   id: string;
   articleId: string;
+  parentId?: string | null;
   heading: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
   passages: PassageWithReveal[];
   containers?: PassageContainer[];
+  children?: SectionData[];
 }
 
 interface InfoboxFieldWithReveal {
@@ -91,6 +93,16 @@ interface Props {
   onError: (msg: string) => void;
 }
 
+/** Flatten a nested section tree to find sections at all levels */
+function flattenSections(sections: SectionData[]): SectionData[] {
+  const result: SectionData[] = [];
+  for (const s of sections) {
+    result.push(s);
+    if (s.children) result.push(...flattenSections(s.children));
+  }
+  return result;
+}
+
 export function BlockEditor({
   article,
   sections: initialSections,
@@ -109,6 +121,7 @@ export function BlockEditor({
   );
 
   const sectionIds = initialSections.map((s) => s.id);
+  const allFlat = flattenSections(initialSections);
 
   // Determine if a dragged item is a section or passage
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -118,12 +131,11 @@ export function BlockEditor({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Check if it's a section being reordered
+    // Check if it's a top-level section being reordered
     const activeSectionIdx = initialSections.findIndex((s) => s.id === activeId);
     const overSectionIdx = initialSections.findIndex((s) => s.id === overId);
 
     if (activeSectionIdx !== -1 && overSectionIdx !== -1) {
-      // Section reorder
       const newSections = [...initialSections];
       const [moved] = newSections.splice(activeSectionIdx, 1);
       newSections.splice(overSectionIdx, 0, moved);
@@ -139,8 +151,31 @@ export function BlockEditor({
       return;
     }
 
+    // Check subsection reorder within same parent
+    for (const section of allFlat) {
+      const children = section.children ?? [];
+      const activeChildIdx = children.findIndex((c) => c.id === activeId);
+      const overChildIdx = children.findIndex((c) => c.id === overId);
+
+      if (activeChildIdx !== -1 && overChildIdx !== -1) {
+        const newChildren = [...children];
+        const [moved] = newChildren.splice(activeChildIdx, 1);
+        newChildren.splice(overChildIdx, 0, moved);
+
+        try {
+          await batchReorder(universeSlug, articleSlug, {
+            sectionOrder: newChildren.map((c, i) => ({ id: c.id, sortOrder: i })),
+          });
+          await onReload();
+        } catch (err: any) {
+          onError(err.message);
+        }
+        return;
+      }
+    }
+
     // Passage reorder within same section
-    for (const section of initialSections) {
+    for (const section of allFlat) {
       const activePassIdx = section.passages.findIndex((p) => p.id === activeId);
       const overPassIdx = section.passages.findIndex((p) => p.id === overId);
 
@@ -160,7 +195,7 @@ export function BlockEditor({
         return;
       }
     }
-  }, [initialSections, universeSlug, articleSlug, onReload, onError]);
+  }, [initialSections, allFlat, universeSlug, articleSlug, onReload, onError]);
 
   const handleAddSection = async () => {
     if (!newSectionHeading.trim()) return;
@@ -171,6 +206,31 @@ export function BlockEditor({
         sortOrder: maxSort + 1,
       });
       setNewSectionHeading("");
+      await onReload();
+    } catch (err: any) {
+      onError(err.message);
+    }
+  };
+
+  const handleAddSubsection = async (parentId: string, heading: string) => {
+    try {
+      const parent = allFlat.find((s) => s.id === parentId);
+      const siblings = parent?.children ?? [];
+      const maxSort = siblings.reduce((m, s) => Math.max(m, s.sortOrder), -1);
+      await createSection(universeSlug, articleSlug, {
+        heading,
+        sortOrder: maxSort + 1,
+        parentId,
+      });
+      await onReload();
+    } catch (err: any) {
+      onError(err.message);
+    }
+  };
+
+  const handleMoveSection = async (sectionId: string, newParentId: string | null) => {
+    try {
+      await updateSection(universeSlug, articleSlug, sectionId, { parentId: newParentId });
       await onReload();
     } catch (err: any) {
       onError(err.message);
@@ -225,7 +285,7 @@ export function BlockEditor({
 
   const handleAddPassage = async (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string; containerId?: string; containerMeta?: any }) => {
     try {
-      const section = initialSections.find((s) => s.id === sectionId);
+      const section = allFlat.find((s) => s.id === sectionId);
       const maxSort = (section?.passages ?? []).reduce((m, p) => Math.max(m, p.sortOrder), -1);
       await createPassage(universeSlug, articleSlug, sectionId, {
         body: data.body,
@@ -337,6 +397,8 @@ export function BlockEditor({
     }
   };
 
+  const topLevelSectionInfo = initialSections.map((s) => ({ id: s.id, heading: s.heading }));
+
   return (
     <div className="block-editor">
       {/* Infobox */}
@@ -361,7 +423,8 @@ export function BlockEditor({
             {initialSections.map((section) => (
               <SectionBlock
                 key={section.id}
-                section={section as any}
+                section={section}
+                depth={1}
                 universeSlug={universeSlug}
                 bookColorMap={colorMap}
                 onUpdateHeading={handleUpdateHeading}
@@ -373,6 +436,9 @@ export function BlockEditor({
                 onCreateContainer={handleCreateContainer}
                 onUpdateContainer={handleUpdateContainer}
                 onDeleteContainer={handleDeleteContainer}
+                onAddSubsection={handleAddSubsection}
+                onMoveSection={handleMoveSection}
+                allTopLevelSections={topLevelSectionInfo}
               />
             ))}
           </div>
