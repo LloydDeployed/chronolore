@@ -20,6 +20,81 @@ const router: Router = Router({ mergeParams: true });
 
 router.use(requireAuth);
 
+/** Max nesting depth for sections: 1 = top-level (H2), 2 = subsection (H3), 3 = sub-subsection (H4) */
+const MAX_SECTION_DEPTH = 3;
+
+/**
+ * Compute the depth of a section by walking up parent_id links.
+ * Returns 1 for top-level sections (parentId = null).
+ */
+async function getSectionDepth(sectionId: string): Promise<number> {
+  let depth = 1;
+  let currentId: string | null = sectionId;
+  while (currentId) {
+    const [row] = await db
+      .select({ parentId: sections.parentId })
+      .from(sections)
+      .where(eq(sections.id, currentId));
+    if (!row || !row.parentId) break;
+    currentId = row.parentId;
+    depth++;
+  }
+  return depth;
+}
+
+/**
+ * Get the max depth of descendants below a section.
+ * Returns 0 if the section has no children.
+ */
+async function getMaxChildDepth(sectionId: string): Promise<number> {
+  const children = await db
+    .select({ id: sections.id })
+    .from(sections)
+    .where(eq(sections.parentId, sectionId));
+  if (children.length === 0) return 0;
+  let max = 0;
+  for (const child of children) {
+    const childDepth = 1 + await getMaxChildDepth(child.id);
+    if (childDepth > max) max = childDepth;
+  }
+  return max;
+}
+
+/**
+ * Build a nested section tree from a flat list of sections (with passages attached).
+ * Sections with parentId = null are top-level. Children are nested under their parent.
+ */
+function buildSectionTree<T extends { id: string; parentId?: string | null; sortOrder: number }>(
+  flatSections: T[],
+): (T & { children: any[] })[] {
+  const map = new Map<string, T & { children: any[] }>();
+  const roots: (T & { children: any[] })[] = [];
+
+  // Initialize all nodes with empty children arrays
+  for (const s of flatSections) {
+    map.set(s.id, { ...s, children: [] });
+  }
+
+  // Link children to parents
+  for (const s of flatSections) {
+    const node = map.get(s.id)!;
+    if (s.parentId && map.has(s.parentId)) {
+      map.get(s.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  // Sort children by sortOrder
+  const sortChildren = (nodes: (T & { children: any[] })[]) => {
+    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const node of nodes) sortChildren(node.children);
+  };
+  sortChildren(roots);
+
+  return roots;
+}
+
 // GET /api/universes/:universeSlug/contribute/drafts — user's own drafts
 router.get("/drafts", async (req: AuthRequest, res: Response) => {
   const universeSlug = req.params.universeSlug as string;
@@ -240,10 +315,12 @@ router.get("/:articleSlug", async (req: AuthRequest, res: Response) => {
     passagesBySection.get(p.sectionId)!.push(ep);
   }
 
-  const enrichedSections = articleSections.map((s) => ({
+  const flatSections = articleSections.map((s) => ({
     ...s,
     passages: passagesBySection.get(s.id) ?? [],
   }));
+
+  const enrichedSections = buildSectionTree(flatSections);
 
   res.json({
     ...article,
@@ -326,7 +403,7 @@ router.post(
   async (req: AuthRequest, res: Response) => {
     const universeSlug = req.params.universeSlug as string;
     const articleSlug = req.params.articleSlug as string;
-    const { heading, sortOrder } = req.body;
+    const { heading, sortOrder, parentId } = req.body;
 
     if (!heading) {
       return res.status(400).json({ error: "heading is required" });
@@ -351,10 +428,25 @@ router.post(
     if (!article)
       return res.status(404).json({ error: "Article not found" });
 
+    // Validate parent and depth
+    if (parentId) {
+      const [parent] = await db
+        .select()
+        .from(sections)
+        .where(and(eq(sections.id, parentId), eq(sections.articleId, article.id)));
+      if (!parent) return res.status(400).json({ error: "Parent section not found" });
+
+      const parentDepth = await getSectionDepth(parentId);
+      if (parentDepth >= MAX_SECTION_DEPTH) {
+        return res.status(400).json({ error: `Max nesting depth is ${MAX_SECTION_DEPTH} (H2 → H3 → H4)` });
+      }
+    }
+
     const [section] = await db
       .insert(sections)
       .values({
         articleId: article.id,
+        parentId: parentId ?? null,
         heading,
         sortOrder: sortOrder ?? 0,
       })
@@ -602,11 +694,59 @@ router.put(
   "/:articleSlug/sections/:sectionId",
   async (req: AuthRequest, res: Response) => {
     const sectionId = req.params.sectionId as string;
-    const { heading, sortOrder } = req.body;
+    const { heading, sortOrder, parentId } = req.body;
 
     const updates: Record<string, any> = { updatedAt: new Date() };
     if (heading !== undefined) updates.heading = heading;
     if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+
+    // Handle parentId change (moving section to new parent or top-level)
+    if (parentId !== undefined) {
+      if (parentId === null) {
+        // Moving to top-level
+        updates.parentId = null;
+      } else {
+        // Prevent setting self as parent
+        if (parentId === sectionId) {
+          return res.status(400).json({ error: "A section cannot be its own parent" });
+        }
+
+        // Verify parent exists and belongs to same article
+        const [section] = await db
+          .select({ articleId: sections.articleId })
+          .from(sections)
+          .where(eq(sections.id, sectionId));
+        if (!section) return res.status(404).json({ error: "Section not found" });
+
+        const [parent] = await db
+          .select()
+          .from(sections)
+          .where(and(eq(sections.id, parentId), eq(sections.articleId, section.articleId)));
+        if (!parent) return res.status(400).json({ error: "Parent section not found" });
+
+        // Check that parent is not a descendant of this section (prevent cycles)
+        let checkId: string | null = parentId;
+        while (checkId) {
+          if (checkId === sectionId) {
+            return res.status(400).json({ error: "Cannot move section under its own descendant" });
+          }
+          const [row] = await db
+            .select({ parentId: sections.parentId })
+            .from(sections)
+            .where(eq(sections.id, checkId));
+          checkId = row?.parentId ?? null;
+        }
+
+        // Validate depth: parent's depth + 1 + max child depth of this section
+        const parentDepth = await getSectionDepth(parentId);
+        const childDepth = await getMaxChildDepth(sectionId);
+        if (parentDepth + 1 + childDepth > MAX_SECTION_DEPTH) {
+          return res.status(400).json({ error: `Max nesting depth is ${MAX_SECTION_DEPTH} (H2 → H3 → H4)` });
+        }
+
+        updates.parentId = parentId;
+      }
+    }
 
     const [updated] = await db
       .update(sections)
@@ -646,16 +786,18 @@ router.put(
   "/:articleSlug/reorder",
   async (req: AuthRequest, res: Response) => {
     const { sectionOrder, passageOrder } = req.body as {
-      sectionOrder?: { id: string; sortOrder: number }[];
+      sectionOrder?: { id: string; sortOrder: number; parentId?: string | null }[];
       passageOrder?: { id: string; sortOrder: number; sectionId?: string }[];
     };
 
     try {
       if (sectionOrder) {
         for (const item of sectionOrder) {
+          const updates: Record<string, any> = { sortOrder: item.sortOrder, updatedAt: new Date() };
+          if (item.parentId !== undefined) updates.parentId = item.parentId;
           await db
             .update(sections)
-            .set({ sortOrder: item.sortOrder, updatedAt: new Date() })
+            .set(updates)
             .where(eq(sections.id, item.id));
         }
       }

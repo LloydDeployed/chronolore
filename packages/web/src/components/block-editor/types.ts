@@ -2,6 +2,7 @@ import type { Section, Passage, Infobox, InfoboxField, PassageType, InfoboxField
 
 export interface SectionWithPassages extends Section {
   passages: Passage[];
+  children?: SectionWithPassages[];
 }
 
 export interface InfoboxWithFields extends Infobox {

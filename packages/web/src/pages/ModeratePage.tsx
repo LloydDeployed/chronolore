@@ -46,6 +46,49 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`status-badge status-${status}`}>{status}</span>;
 }
 
+function renderReviewSection(
+  section: any,
+  depth: number,
+  articleNeedsReview: boolean,
+  handlePublish: (type: string, id: string) => void,
+  setRejectTarget: (target: { id: string; type: string } | null) => void,
+) {
+  const HeadingTag = depth === 1 ? "h3" : depth === 2 ? "h4" : "h5";
+
+  return (
+    <div key={section.id} className={`review-section review-section--depth-${depth}`}>
+      <HeadingTag className="review-section-heading">{section.heading}</HeadingTag>
+      {section.passages.length === 0 && (!section.children || section.children.length === 0) ? (
+        <p className="review-empty">No passages in this section</p>
+      ) : (
+        <>
+          {section.passages.map((p: any) => (
+            <div key={p.id} className={`review-passage ${p.status === "review" ? "review-passage--pending" : ""}`}>
+              <div className="review-passage-content">
+                <div className="review-passage-meta">
+                  <StatusBadge status={p.status} />
+                  <span className="queue-block-type">{p.passageType}</span>
+                  <RevealTag rp={p.revealPoint} />
+                </div>
+                <div className="review-passage-body"><TiptapRenderer content={p.body} /></div>
+              </div>
+              {p.status === "review" && (
+                <div className="review-passage-actions">
+                  <button className="btn-primary btn-xs" onClick={() => handlePublish("passage", p.id)} disabled={articleNeedsReview} title={articleNeedsReview ? "Approve article first" : ""}>✓ Publish</button>
+                  <button className="btn-secondary btn-xs" onClick={() => setRejectTarget({ id: p.id, type: "passage" })}>✗ Reject</button>
+                </div>
+              )}
+            </div>
+          ))}
+          {section.children?.map((child: any) =>
+            renderReviewSection(child, depth + 1, articleNeedsReview, handlePublish, setRejectTarget)
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Article Review Detail View ──
 
 function ArticleReview({
@@ -173,34 +216,8 @@ function ArticleReview({
             </div>
           )}
 
-          {/* Sections & Passages */}
-          {sections.map((section: any) => (
-            <div key={section.id} className="review-section">
-              <h3 className="review-section-heading">{section.heading}</h3>
-              {section.passages.length === 0 ? (
-                <p className="review-empty">No passages in this section</p>
-              ) : (
-                section.passages.map((p: any) => (
-                  <div key={p.id} className={`review-passage ${p.status === "review" ? "review-passage--pending" : ""}`}>
-                    <div className="review-passage-content">
-                      <div className="review-passage-meta">
-                        <StatusBadge status={p.status} />
-                        <span className="queue-block-type">{p.passageType}</span>
-                        <RevealTag rp={p.revealPoint} />
-                      </div>
-                      <div className="review-passage-body"><TiptapRenderer content={p.body} /></div>
-                    </div>
-                    {p.status === "review" && (
-                      <div className="review-passage-actions">
-                        <button className="btn-primary btn-xs" onClick={() => handlePublish("passage", p.id)} disabled={articleNeedsReview} title={articleNeedsReview ? "Approve article first" : ""}>✓ Publish</button>
-                        <button className="btn-secondary btn-xs" onClick={() => setRejectTarget({ id: p.id, type: "passage" })}>✗ Reject</button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          ))}
+          {/* Sections & Passages (nested) */}
+          {sections.map((section: any) => renderReviewSection(section, 1, articleNeedsReview, handlePublish, setRejectTarget))}
         </>
       )}
 
