@@ -5,6 +5,7 @@ import {
   sections,
   passages,
   passageRevisions,
+  passageContainers,
   articleTypes,
   universes,
   revealPoints,
@@ -126,6 +127,16 @@ router.get("/:articleSlug", async (req: AuthRequest, res: Response) => {
     .orderBy(asc(sections.sortOrder));
 
   const sectionIds = articleSections.map((s) => s.id);
+
+  // Get containers for all sections
+  const allContainers = sectionIds.length > 0
+    ? await db
+        .select()
+        .from(passageContainers)
+        .where(inArray(passageContainers.sectionId, sectionIds))
+        .orderBy(asc(passageContainers.sortOrder))
+    : [];
+
   const allPassages = sectionIds.length > 0
     ? await db
         .select()
@@ -240,9 +251,16 @@ router.get("/:articleSlug", async (req: AuthRequest, res: Response) => {
     passagesBySection.get(p.sectionId)!.push(ep);
   }
 
+  const containersBySection = new Map<string, typeof allContainers>();
+  for (const c of allContainers) {
+    if (!containersBySection.has(c.sectionId)) containersBySection.set(c.sectionId, []);
+    containersBySection.get(c.sectionId)!.push(c);
+  }
+
   const enrichedSections = articleSections.map((s) => ({
     ...s,
     passages: passagesBySection.get(s.id) ?? [],
+    containers: containersBySection.get(s.id) ?? [],
   }));
 
   res.json({
@@ -375,6 +393,8 @@ router.post(
       revealAtEntry,
       revealAtSegment,
       passageType,
+      containerId,
+      containerMeta,
     } = req.body;
 
     if (!body) {
@@ -398,6 +418,8 @@ router.post(
         sortOrder: sortOrder ?? 0,
         passageType: passageType ?? "prose",
         status: "draft",
+        containerId: containerId ?? null,
+        containerMeta: containerMeta ?? {},
         createdBy: req.userId,
       })
       .returning();
@@ -512,7 +534,7 @@ router.put(
   "/:articleSlug/passages/:passageId",
   async (req: AuthRequest, res: Response) => {
     const passageId = req.params.passageId as string;
-    const { body, sortOrder, revealAtEntry, revealAtSegment } = req.body;
+    const { body, sortOrder, revealAtEntry, revealAtSegment, containerId, containerMeta } = req.body;
 
     const [passage] = await db
       .select()
@@ -524,6 +546,8 @@ router.put(
     // Handle reveal point and sortOrder updates on the passage itself
     const passageUpdates: Record<string, any> = { updatedAt: new Date() };
     if (sortOrder !== undefined) passageUpdates.sortOrder = sortOrder;
+    if (containerId !== undefined) passageUpdates.containerId = containerId;
+    if (containerMeta !== undefined) passageUpdates.containerMeta = containerMeta;
 
     if (revealAtEntry) {
       const rpId = await resolveRevealPoint(revealAtEntry, revealAtSegment);
@@ -768,6 +792,75 @@ router.post(
       // Passage stays published, but revision is now in review
       res.json({ ...passage, latestRevision: draftRevision ? { ...draftRevision, status: "review" } : null });
     }
+  },
+);
+
+// ── Passage Container CRUD ──
+
+// POST /:articleSlug/sections/:sectionId/containers — create container
+router.post(
+  "/:articleSlug/sections/:sectionId/containers",
+  async (req: AuthRequest, res: Response) => {
+    const sectionId = req.params.sectionId as string;
+    const { type, title, config, sortOrder } = req.body;
+
+    if (!type || !["paragraph", "table"].includes(type)) {
+      return res.status(400).json({ error: "type must be 'paragraph' or 'table'" });
+    }
+
+    const [container] = await db
+      .insert(passageContainers)
+      .values({
+        sectionId,
+        type,
+        title: title ?? null,
+        config: config ?? {},
+        sortOrder: sortOrder ?? 0,
+      })
+      .returning();
+
+    res.status(201).json(container);
+  },
+);
+
+// PUT /:articleSlug/containers/:containerId — update container
+router.put(
+  "/:articleSlug/containers/:containerId",
+  async (req: AuthRequest, res: Response) => {
+    const containerId = req.params.containerId as string;
+    const { title, config, sortOrder } = req.body;
+
+    const updates: Record<string, any> = { updatedAt: new Date() };
+    if (title !== undefined) updates.title = title;
+    if (config !== undefined) updates.config = config;
+    if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+
+    const [updated] = await db
+      .update(passageContainers)
+      .set(updates)
+      .where(eq(passageContainers.id, containerId))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "Container not found" });
+
+    res.json(updated);
+  },
+);
+
+// DELETE /:articleSlug/containers/:containerId — delete container (passages go standalone)
+router.delete(
+  "/:articleSlug/containers/:containerId",
+  async (req: AuthRequest, res: Response) => {
+    const containerId = req.params.containerId as string;
+
+    const [deleted] = await db
+      .delete(passageContainers)
+      .where(eq(passageContainers.id, containerId))
+      .returning();
+
+    if (!deleted) return res.status(404).json({ error: "Container not found" });
+
+    res.json({ deleted: true, id: containerId });
   },
 );
 

@@ -4,8 +4,9 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities";
 import { PassageBlock } from "./PassageBlock";
 import { NewPassageForm } from "./NewPassageForm";
+import { ContainerBlock } from "./ContainerBlock";
 import type { BookColor, SectionWithPassages } from "./types";
-import type { Passage, PassageType } from "@chronolore/shared";
+import type { Passage, PassageType, PassageContainer } from "@chronolore/shared";
 
 interface RevealPointInfo {
   entrySlug: string;
@@ -20,6 +21,7 @@ interface PassageWithReveal extends Passage {
 
 interface SectionWithRevealPassages extends Omit<SectionWithPassages, "passages"> {
   passages: PassageWithReveal[];
+  containers?: PassageContainer[];
 }
 
 interface Props {
@@ -28,10 +30,13 @@ interface Props {
   bookColorMap: Map<string, BookColor>;
   onUpdateHeading: (sectionId: string, heading: string) => Promise<void>;
   onDeleteSection: (sectionId: string) => void;
-  onSavePassage: (passageId: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string }) => Promise<void>;
+  onSavePassage: (passageId: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string; containerId?: string | null; containerMeta?: any }) => Promise<void>;
   onDeletePassage: (passageId: string) => void;
   onSubmitForReview: (passageId: string) => void;
-  onAddPassage: (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string }) => Promise<void>;
+  onAddPassage: (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string; containerId?: string; containerMeta?: any }) => Promise<void>;
+  onCreateContainer?: (sectionId: string, data: { type: string; title?: string; config?: any; sortOrder?: number }) => Promise<void>;
+  onUpdateContainer?: (containerId: string, data: { title?: string; config?: any }) => Promise<void>;
+  onDeleteContainer?: (containerId: string) => Promise<void>;
 }
 
 export function SectionBlock({
@@ -44,11 +49,15 @@ export function SectionBlock({
   onDeletePassage,
   onSubmitForReview,
   onAddPassage,
+  onCreateContainer,
+  onUpdateContainer,
+  onDeleteContainer,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [editingHeading, setEditingHeading] = useState(false);
   const [headingDraft, setHeadingDraft] = useState(section.heading);
   const [showNewPassage, setShowNewPassage] = useState(false);
+  const [addingToContainer, setAddingToContainer] = useState<string | null>(null);
 
   const {
     attributes,
@@ -122,18 +131,72 @@ export function SectionBlock({
 
       {!collapsed && (
         <div className="block-section__body">
-          <SortableContext items={passageIds} strategy={verticalListSortingStrategy}>
-            {section.passages.map((passage) => (
-              <PassageBlock
-                key={passage.id}
-                passage={passage}
-                universeSlug={universeSlug}
-                bookColor={getBookColor(passage)}
-                onSave={onSavePassage}
-                onDelete={onDeletePassage}
-                onSubmitForReview={onSubmitForReview}
-              />
-            ))}
+          {/* Render containers with their passages */}
+          {(section.containers ?? []).map((container) => {
+            const containerPassages = section.passages.filter((p) => p.containerId === container.id);
+            const containerPassageIds = containerPassages.map((p) => p.id);
+
+            return (
+              <ContainerBlock
+                key={container.id}
+                container={container}
+                passageCount={containerPassages.length}
+                onUpdate={onUpdateContainer ?? (async () => {})}
+                onDelete={(id) => onDeleteContainer?.(id)}
+              >
+                <SortableContext items={containerPassageIds} strategy={verticalListSortingStrategy}>
+                  {containerPassages.map((passage) => (
+                    <PassageBlock
+                      key={passage.id}
+                      passage={passage}
+                      universeSlug={universeSlug}
+                      bookColor={getBookColor(passage)}
+                      onSave={onSavePassage}
+                      onDelete={onDeletePassage}
+                      onSubmitForReview={onSubmitForReview}
+                      container={container}
+                    />
+                  ))}
+                </SortableContext>
+                {addingToContainer === container.id ? (
+                  <NewPassageForm
+                    universeSlug={universeSlug}
+                    containerId={container.id}
+                    containerType={container.type}
+                    containerConfig={container.config}
+                    onAdd={async (data) => {
+                      await onAddPassage(section.id, { ...data, containerId: container.id, containerMeta: data.containerMeta });
+                      setAddingToContainer(null);
+                    }}
+                    onCancel={() => setAddingToContainer(null)}
+                  />
+                ) : (
+                  <button className="block-add-btn" onClick={() => setAddingToContainer(container.id)}>
+                    + Add Passage to {container.type === "paragraph" ? "Paragraph" : "Table"}
+                  </button>
+                )}
+              </ContainerBlock>
+            );
+          })}
+
+          {/* Render standalone passages (no container) */}
+          <SortableContext items={passageIds.filter((id) => {
+            const p = section.passages.find((pp) => pp.id === id);
+            return !p?.containerId;
+          })} strategy={verticalListSortingStrategy}>
+            {section.passages
+              .filter((p) => !p.containerId)
+              .map((passage) => (
+                <PassageBlock
+                  key={passage.id}
+                  passage={passage}
+                  universeSlug={universeSlug}
+                  bookColor={getBookColor(passage)}
+                  onSave={onSavePassage}
+                  onDelete={onDeletePassage}
+                  onSubmitForReview={onSubmitForReview}
+                />
+              ))}
           </SortableContext>
 
           {showNewPassage ? (
@@ -146,9 +209,21 @@ export function SectionBlock({
               onCancel={() => setShowNewPassage(false)}
             />
           ) : (
-            <button className="block-add-btn" onClick={() => setShowNewPassage(true)}>
-              + Add Passage
-            </button>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+              <button className="block-add-btn" onClick={() => setShowNewPassage(true)}>
+                + Add Passage
+              </button>
+              {onCreateContainer && (
+                <div className="add-container-menu">
+                  <button className="block-add-btn" onClick={() => onCreateContainer(section.id, { type: "paragraph", sortOrder: (section.containers?.length ?? 0) })}>
+                    + ¶ Paragraph Container
+                  </button>
+                  <button className="block-add-btn" onClick={() => onCreateContainer(section.id, { type: "table", config: { columns: [{ name: "Column 1", key: "col1" }] }, sortOrder: (section.containers?.length ?? 0) })}>
+                    + ▦ Table Container
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

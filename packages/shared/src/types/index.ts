@@ -105,6 +105,33 @@ export interface Section {
 
 export type PassageType = "prose" | "quote" | "note";
 
+export type PassageContainerType = "paragraph" | "table";
+
+export interface PassageContainerColumn {
+  name: string;
+  key: string;
+}
+
+export interface PassageContainerConfig {
+  columns?: PassageContainerColumn[];
+}
+
+export interface PassageContainer {
+  id: string;
+  sectionId: string;
+  type: PassageContainerType;
+  title?: string | null;
+  config: PassageContainerConfig;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PassageContainerMeta {
+  row?: number;
+  column?: string; // column key for table containers
+}
+
 export interface Passage {
   id: string;
   sectionId: string;
@@ -115,6 +142,8 @@ export interface Passage {
   passageType: PassageType;
   rejectionReason?: string;
   publishedRevisionId?: string | null;
+  containerId?: string | null;
+  containerMeta?: PassageContainerMeta;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;

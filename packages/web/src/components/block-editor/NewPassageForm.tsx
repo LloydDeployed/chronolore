@@ -1,30 +1,41 @@
 import { useState } from "react";
 import { RevealPointPicker } from "../RevealPointPicker";
 import { TiptapEditor } from "../TiptapEditor";
-import type { PassageType } from "@chronolore/shared";
+import type { PassageType, PassageContainerConfig, PassageContainerColumn } from "@chronolore/shared";
 
 interface Props {
   universeSlug: string;
-  onAdd: (data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string }) => Promise<void>;
+  containerId?: string;
+  containerType?: string;
+  containerConfig?: PassageContainerConfig;
+  onAdd: (data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string; containerMeta?: any }) => Promise<void>;
   onCancel: () => void;
 }
 
-export function NewPassageForm({ universeSlug, onAdd, onCancel }: Props) {
+export function NewPassageForm({ universeSlug, containerId, containerType, containerConfig, onAdd, onCancel }: Props) {
   const [body, setBody] = useState("");
   const [passageType, setPassageType] = useState<PassageType>("prose");
   const [revealEntry, setRevealEntry] = useState("");
   const [revealSegment, setRevealSegment] = useState("");
   const [saving, setSaving] = useState(false);
+  const [metaRow, setMetaRow] = useState(0);
+  const [metaColumn, setMetaColumn] = useState("");
+
+  const columns: PassageContainerColumn[] = containerConfig?.columns ?? [];
 
   const handleAdd = async () => {
     if (!body.trim()) return;
     setSaving(true);
     try {
+      const containerMeta = containerType === "table"
+        ? { row: metaRow, column: metaColumn }
+        : undefined;
       await onAdd({
         body: body.trim(),
         passageType,
         revealAtEntry: revealEntry || undefined,
         revealAtSegment: revealSegment || undefined,
+        containerMeta,
       });
     } finally {
       setSaving(false);
@@ -53,6 +64,19 @@ export function NewPassageForm({ universeSlug, onAdd, onCancel }: Props) {
         onEntryChange={setRevealEntry}
         onSegmentChange={setRevealSegment}
       />
+      {containerType === "table" && columns.length > 0 && (
+        <div className="container-meta-editor" style={{ marginBottom: "0.5rem" }}>
+          <label>Row:</label>
+          <input type="number" value={metaRow} onChange={(e) => setMetaRow(parseInt(e.target.value) || 0)} style={{ width: "50px" }} />
+          <label>Column:</label>
+          <select value={metaColumn} onChange={(e) => setMetaColumn(e.target.value)}>
+            <option value="">—</option>
+            {columns.map((col) => (
+              <option key={col.key} value={col.key}>{col.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="block-passage__editor-actions">
         <button className="btn-small btn-save" onClick={handleAdd} disabled={saving || !body.trim()}>
           {saving ? "Adding..." : "Add Passage"}

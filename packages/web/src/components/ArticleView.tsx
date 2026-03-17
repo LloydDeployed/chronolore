@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getArticle } from "../api/client";
 import { TiptapRenderer } from "./TiptapRenderer";
-import type { Section, Passage, Infobox, InfoboxField, InfoboxFieldMode } from "@chronolore/shared";
+import type { Section, Passage, PassageContainer, Infobox, InfoboxField, InfoboxFieldMode } from "@chronolore/shared";
 
 interface Props {
   universeSlug: string;
@@ -17,7 +17,7 @@ interface ArticleData {
   title: string;
   slug: string;
   articleType: { name: string; icon: string };
-  sections: (Section & { passages: Passage[] })[];
+  sections: (Section & { passages: Passage[]; containers?: PassageContainer[] })[];
   infobox: (Infobox & { fields: InfoboxField[] }) | null;
 }
 
@@ -65,7 +65,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
     (s) => s.passages.some((p: Passage) => p.createdBy === currentUserId)
   ) || isModerator;
 
-  const renderPassage = (passage: Passage) => {
+  const renderPassage = (passage: Passage, inParagraphContainer = false) => {
     const statusBadge = passage.status !== "published" ? (
       <span className={`status-badge status-${passage.status}`}>{passage.status}</span>
     ) : null;
@@ -87,11 +87,11 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
         );
         break;
       default:
-        content = <div className="passage-prose"><TiptapRenderer content={passage.body} /></div>;
+        content = <div className={`passage-prose${inParagraphContainer ? " passage-prose--continuous" : ""}`}><TiptapRenderer content={passage.body} /></div>;
     }
 
     return (
-      <div key={passage.id} className="passage-wrapper">
+      <div key={passage.id} className={`passage-wrapper${inParagraphContainer ? " passage-wrapper--continuous" : ""}`}>
         {content}
         {statusBadge && (
           <div className="passage-meta">
@@ -100,6 +100,116 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
         )}
       </div>
     );
+  };
+
+  /** Render a table container: build an HTML table from passages placed in cells */
+  const renderTableContainer = (container: PassageContainer, containerPassages: Passage[]) => {
+    const config = container.config as { columns?: { name: string; key: string }[] };
+    const columns = config?.columns ?? [];
+    if (columns.length === 0) return null;
+
+    // Group passages by row
+    const rowMap = new Map<number, Map<string, Passage>>();
+    for (const p of containerPassages) {
+      const meta = (p.containerMeta ?? {}) as { row?: number; column?: string };
+      const row = meta.row ?? 0;
+      const col = meta.column ?? "";
+      if (!rowMap.has(row)) rowMap.set(row, new Map());
+      rowMap.get(row)!.set(col, p);
+    }
+
+    const sortedRows = [...rowMap.keys()].sort((a, b) => a - b);
+
+    return (
+      <div key={container.id} className="passage-container passage-container--table">
+        {container.title && <h3 className="passage-container__title">{container.title}</h3>}
+        <table className="passage-table">
+          <thead>
+            <tr>
+              {columns.map((col) => (
+                <th key={col.key}>{col.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedRows.map((rowIdx) => {
+              const rowCells = rowMap.get(rowIdx)!;
+              return (
+                <tr key={rowIdx}>
+                  {columns.map((col) => {
+                    const passage = rowCells.get(col.key);
+                    return (
+                      <td key={col.key}>
+                        {passage ? <TiptapRenderer content={passage.body} /> : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  /** Render section content, grouping passages by containers */
+  const renderSectionContent = (section: ArticleData["sections"][number]) => {
+    const containers = section.containers ?? [];
+    const containerMap = new Map(containers.map((c) => [c.id, c]));
+
+    // Separate standalone passages from container passages
+    const standalonePassages: Passage[] = [];
+    const containerPassagesMap = new Map<string, Passage[]>();
+
+    for (const p of section.passages) {
+      if (p.containerId && containerMap.has(p.containerId)) {
+        if (!containerPassagesMap.has(p.containerId)) containerPassagesMap.set(p.containerId, []);
+        containerPassagesMap.get(p.containerId)!.push(p);
+      } else {
+        standalonePassages.push(p);
+      }
+    }
+
+    // Build render items sorted by sortOrder. Containers use their own sortOrder,
+    // standalone passages use their sortOrder. We interleave them.
+    type RenderItem =
+      | { kind: "standalone"; passage: Passage; order: number }
+      | { kind: "container"; container: PassageContainer; passages: Passage[]; order: number };
+
+    const items: RenderItem[] = [];
+
+    for (const p of standalonePassages) {
+      items.push({ kind: "standalone", passage: p, order: p.sortOrder });
+    }
+
+    for (const c of containers) {
+      const cPassages = containerPassagesMap.get(c.id) ?? [];
+      if (cPassages.length > 0) {
+        items.push({ kind: "container", container: c, passages: cPassages, order: c.sortOrder });
+      }
+    }
+
+    items.sort((a, b) => a.order - b.order);
+
+    return items.map((item) => {
+      if (item.kind === "standalone") {
+        return renderPassage(item.passage);
+      }
+      if (item.container.type === "paragraph") {
+        const sorted = [...item.passages].sort((a, b) => a.sortOrder - b.sortOrder);
+        return (
+          <div key={item.container.id} className="passage-container passage-container--paragraph">
+            {item.container.title && <h3 className="passage-container__title">{item.container.title}</h3>}
+            {sorted.map((p) => renderPassage(p, true))}
+          </div>
+        );
+      }
+      if (item.container.type === "table") {
+        return renderTableContainer(item.container, item.passages);
+      }
+      return null;
+    });
   };
 
   return (
@@ -157,7 +267,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
             article.sections.map((section) => (
               <section key={section.id} className="article-section">
                 <h2 className="section-heading">{section.heading}</h2>
-                {section.passages.map(renderPassage)}
+                {renderSectionContent(section)}
               </section>
             ))
           )}

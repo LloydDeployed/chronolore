@@ -1,4 +1,4 @@
-import type { EntryProgress, Section, Passage, Infobox, InfoboxField } from "@chronolore/shared";
+import type { EntryProgress, Section, Passage, PassageContainer, Infobox, InfoboxField } from "@chronolore/shared";
 
 const BASE = "/api";
 
@@ -164,6 +164,8 @@ export const createPassage = (
     sortOrder?: number;
     revealAtEntry?: string;
     revealAtSegment?: string;
+    containerId?: string;
+    containerMeta?: any;
   },
 ) =>
   fetchJson<Passage>(
@@ -180,6 +182,8 @@ export const updatePassage = (
     sortOrder?: number;
     revealAtEntry?: string;
     revealAtSegment?: string;
+    containerId?: string | null;
+    containerMeta?: any;
   },
 ) =>
   fetchJson<Passage>(
@@ -325,6 +329,39 @@ export const deletePassage = (
 ) =>
   fetchJson<any>(
     `/universes/${universeSlug}/contribute/${articleSlug}/passages/${passageId}`,
+    { method: "DELETE", auth: true },
+  );
+
+// ── Passage Containers ──
+export const createContainer = (
+  universeSlug: string,
+  articleSlug: string,
+  sectionId: string,
+  data: { type: string; title?: string; config?: any; sortOrder?: number },
+) =>
+  fetchJson<PassageContainer>(
+    `/universes/${universeSlug}/contribute/${articleSlug}/sections/${sectionId}/containers`,
+    { method: "POST", body: data, auth: true },
+  );
+
+export const updateContainer = (
+  universeSlug: string,
+  articleSlug: string,
+  containerId: string,
+  data: { title?: string; config?: any; sortOrder?: number },
+) =>
+  fetchJson<PassageContainer>(
+    `/universes/${universeSlug}/contribute/${articleSlug}/containers/${containerId}`,
+    { method: "PUT", body: data, auth: true },
+  );
+
+export const deleteContainer = (
+  universeSlug: string,
+  articleSlug: string,
+  containerId: string,
+) =>
+  fetchJson<any>(
+    `/universes/${universeSlug}/contribute/${articleSlug}/containers/${containerId}`,
     { method: "DELETE", auth: true },
   );
 

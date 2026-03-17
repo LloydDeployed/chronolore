@@ -257,6 +257,27 @@ export const sections = pgTable(
   (t) => [index("idx_sections_article").on(t.articleId)],
 );
 
+// ── Passage Containers (v2.2) ──
+// Grouping mechanism for passages within a section.
+// 'paragraph' = continuous prose, 'table' = tabular layout with column headers.
+
+export const passageContainers = pgTable(
+  "passage_containers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sectionId: uuid("section_id")
+      .notNull()
+      .references(() => sections.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // 'paragraph' | 'table'
+    title: text("title"),
+    config: jsonb("config").default({}), // table type: {columns: [{name, key}]}
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("idx_passage_containers_section").on(t.sectionId)],
+);
+
 // ── Passages (new in v2) ──
 // The atomic unit of revealable content. Each passage is independently gated
 // by a reveal point. Null reveal_point_id = evergreen (always visible).
@@ -280,6 +301,10 @@ export const passages = pgTable(
     rejectionReason: text("rejection_reason"),
     /** Points to the currently published revision (null if never published) */
     publishedRevisionId: uuid("published_revision_id"),
+    /** Null = standalone passage. Non-null = belongs to a container. */
+    containerId: uuid("container_id").references(() => passageContainers.id, { onDelete: "set null" }),
+    /** Container-specific metadata. Table type: {row, column} */
+    containerMeta: jsonb("container_meta").default({}),
     createdBy: uuid("created_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -287,6 +312,7 @@ export const passages = pgTable(
   (t) => [
     index("idx_passages_section").on(t.sectionId),
     index("idx_passages_reveal").on(t.revealPointId),
+    index("idx_passages_container").on(t.containerId),
   ],
 );
 

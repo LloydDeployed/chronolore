@@ -5,6 +5,7 @@ import {
   sections,
   passages,
   passageRevisions,
+  passageContainers,
   infoboxes,
   infoboxFields,
   articleTypes,
@@ -261,8 +262,18 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
     .where(eq(sections.articleId, article.id))
     .orderBy(asc(sections.sortOrder));
 
-  // Get passages filtered by progress
+  // Get containers for all sections
   const sectionIds = articleSections.map((s) => s.id);
+
+  const allContainers = sectionIds.length > 0
+    ? await db
+        .select()
+        .from(passageContainers)
+        .where(inArray(passageContainers.sectionId, sectionIds))
+        .orderBy(asc(passageContainers.sortOrder))
+    : [];
+
+  // Get passages filtered by progress
   let visiblePassages: typeof passages.$inferSelect[] = [];
   if (sectionIds.length > 0) {
     const passageConditions = [
@@ -346,10 +357,17 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
     passagesBySection.get(p.sectionId)!.push(p);
   }
 
+  const containersBySection = new Map<string, typeof allContainers>();
+  for (const c of allContainers) {
+    if (!containersBySection.has(c.sectionId)) containersBySection.set(c.sectionId, []);
+    containersBySection.get(c.sectionId)!.push(c);
+  }
+
   const enrichedSections = articleSections
     .map((s) => ({
       ...s,
       passages: passagesBySection.get(s.id) ?? [],
+      containers: containersBySection.get(s.id) ?? [],
     }))
     .filter((s) => s.passages.length > 0); // Section visible only if it has visible passages
 

@@ -17,7 +17,7 @@ import { SectionBlock } from "./SectionBlock";
 import { InfoboxEditor } from "./InfoboxEditor";
 import { useBookColors } from "./useBookColors";
 import type { BookColor } from "./types";
-import type { Article, Passage, PassageType, InfoboxFieldMode } from "@chronolore/shared";
+import type { Article, Passage, PassageType, PassageContainer, InfoboxFieldMode } from "@chronolore/shared";
 import {
   createSection,
   updateSection,
@@ -33,6 +33,9 @@ import {
   updateInfoboxField,
   deleteInfoboxField,
   batchReorder,
+  createContainer,
+  updateContainer,
+  deleteContainer,
 } from "../../api/client";
 
 interface RevealPointInfo {
@@ -54,6 +57,7 @@ interface SectionData {
   createdAt: string;
   updatedAt: string;
   passages: PassageWithReveal[];
+  containers?: PassageContainer[];
 }
 
 interface InfoboxFieldWithReveal {
@@ -191,9 +195,9 @@ export function BlockEditor({
     }
   };
 
-  const handleSavePassage = async (passageId: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string }) => {
+  const handleSavePassage = async (passageId: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string; containerId?: string | null; containerMeta?: any }) => {
     try {
-      await updatePassage(universeSlug, articleSlug, passageId, data);
+      await updatePassage(universeSlug, articleSlug, passageId, data as any);
       await onReload();
     } catch (err: any) {
       onError(err.message);
@@ -219,7 +223,7 @@ export function BlockEditor({
     }
   };
 
-  const handleAddPassage = async (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string }) => {
+  const handleAddPassage = async (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string; containerId?: string; containerMeta?: any }) => {
     try {
       const section = initialSections.find((s) => s.id === sectionId);
       const maxSort = (section?.passages ?? []).reduce((m, p) => Math.max(m, p.sortOrder), -1);
@@ -229,7 +233,37 @@ export function BlockEditor({
         sortOrder: maxSort + 1,
         revealAtEntry: data.revealAtEntry,
         revealAtSegment: data.revealAtSegment,
-      });
+        ...(data.containerId ? { containerId: data.containerId } : {}),
+        ...(data.containerMeta ? { containerMeta: data.containerMeta } : {}),
+      } as any);
+      await onReload();
+    } catch (err: any) {
+      onError(err.message);
+    }
+  };
+
+  // Container handlers
+  const handleCreateContainer = async (sectionId: string, data: { type: string; title?: string; config?: any; sortOrder?: number }) => {
+    try {
+      await createContainer(universeSlug, articleSlug, sectionId, data);
+      await onReload();
+    } catch (err: any) {
+      onError(err.message);
+    }
+  };
+
+  const handleUpdateContainer = async (containerId: string, data: { title?: string; config?: any }) => {
+    try {
+      await updateContainer(universeSlug, articleSlug, containerId, data);
+      await onReload();
+    } catch (err: any) {
+      onError(err.message);
+    }
+  };
+
+  const handleDeleteContainer = async (containerId: string) => {
+    try {
+      await deleteContainer(universeSlug, articleSlug, containerId);
       await onReload();
     } catch (err: any) {
       onError(err.message);
@@ -336,6 +370,9 @@ export function BlockEditor({
                 onDeletePassage={handleDeletePassage}
                 onSubmitForReview={handleSubmitForReview}
                 onAddPassage={handleAddPassage}
+                onCreateContainer={handleCreateContainer}
+                onUpdateContainer={handleUpdateContainer}
+                onDeleteContainer={handleDeleteContainer}
               />
             ))}
           </div>

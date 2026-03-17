@@ -1,7 +1,8 @@
-import type { Section, Passage, Infobox, InfoboxField, PassageType, InfoboxFieldMode } from "@chronolore/shared";
+import type { Section, Passage, PassageContainer, Infobox, InfoboxField, PassageType, InfoboxFieldMode } from "@chronolore/shared";
 
 export interface SectionWithPassages extends Section {
   passages: Passage[];
+  containers?: PassageContainer[];
 }
 
 export interface InfoboxWithFields extends Infobox {

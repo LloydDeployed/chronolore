@@ -901,6 +901,153 @@ a:hover {
   display: inline;
 }
 
+/* ── Passage Containers ── */
+
+.passage-container {
+  margin-bottom: 1rem;
+}
+
+.passage-container__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+/* Paragraph container: continuous prose, no gaps between passages */
+.passage-container--paragraph .passage-wrapper--continuous {
+  margin-bottom: 0;
+}
+
+.passage-container--paragraph .passage-prose--continuous {
+  margin-bottom: 0;
+}
+
+/* Table container */
+.passage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.passage-table th {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.passage-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+
+.passage-table td p {
+  margin: 0;
+}
+
+/* ── Container Editor (block editor) ── */
+
+.block-container {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.block-container__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.block-container__type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.block-container__type-badge--paragraph {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.block-container__type-badge--table {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.block-container__title-input {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.block-container__body {
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+}
+
+.block-container__columns {
+  margin: 0.5rem 0;
+}
+
+.block-container__column-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.block-container__column-row input {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.8rem;
+  width: 120px;
+}
+
+.container-meta-editor {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+.container-meta-editor label {
+  font-weight: 500;
+}
+
+.container-meta-editor input,
+.container-meta-editor select {
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+.add-container-menu {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .passage-meta {
   display: flex;
   align-items: center;

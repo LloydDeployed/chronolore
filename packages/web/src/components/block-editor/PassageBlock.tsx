@@ -5,7 +5,7 @@ import { RevealPointPicker } from "../RevealPointPicker";
 import { TiptapEditor } from "../TiptapEditor";
 import { TiptapRenderer, extractText } from "../TiptapRenderer";
 import { STATUS_COLORS, STATUS_BG, type BookColor } from "./types";
-import type { Passage, PassageType } from "@chronolore/shared";
+import type { Passage, PassageType, PassageContainer, PassageContainerColumn } from "@chronolore/shared";
 
 interface RevealPointInfo {
   entrySlug: string;
@@ -23,9 +23,10 @@ interface Props {
   passage: PassageWithReveal;
   universeSlug: string;
   bookColor?: BookColor;
-  onSave: (id: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string }) => Promise<void>;
+  onSave: (id: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string; containerId?: string | null; containerMeta?: any }) => Promise<void>;
   onDelete: (id: string) => void;
   onSubmitForReview: (id: string) => void;
+  container?: PassageContainer;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -34,7 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   note: "Note",
 };
 
-export function PassageBlock({ passage, universeSlug, bookColor, onSave, onDelete, onSubmitForReview }: Props) {
+export function PassageBlock({ passage, universeSlug, bookColor, onSave, onDelete, onSubmitForReview, container }: Props) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(passage.body);
   const [passageType, setPassageType] = useState<PassageType>(passage.passageType);
@@ -142,6 +143,32 @@ export function PassageBlock({ passage, universeSlug, bookColor, onSave, onDelet
           padding: "4px 8px", margin: "4px 0", fontSize: "0.8em", color: "#92400e",
         }}>
           ✏️ Pending edit ({latestRevisionStatus ?? "draft"}) — published version still live
+        </div>
+      )}
+      {container?.type === "table" && (
+        <div className="container-meta-editor">
+          <label>Row:</label>
+          <input
+            type="number"
+            value={(passage.containerMeta as any)?.row ?? 0}
+            style={{ width: "50px" }}
+            onChange={(e) => {
+              const row = parseInt(e.target.value) || 0;
+              onSave(passage.id, { containerMeta: { ...(passage.containerMeta ?? {}), row } });
+            }}
+          />
+          <label>Column:</label>
+          <select
+            value={(passage.containerMeta as any)?.column ?? ""}
+            onChange={(e) => {
+              onSave(passage.id, { containerMeta: { ...(passage.containerMeta ?? {}), column: e.target.value } });
+            }}
+          >
+            <option value="">—</option>
+            {((container.config as any)?.columns ?? []).map((col: PassageContainerColumn) => (
+              <option key={col.key} value={col.key}>{col.name}</option>
+            ))}
+          </select>
         </div>
       )}
       <div className="block-passage__body">
