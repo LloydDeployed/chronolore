@@ -4,14 +4,9 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities";
 import { PassageBlock } from "./PassageBlock";
 import { NewPassageForm } from "./NewPassageForm";
-<<<<<<< HEAD
 import { ContainerBlock } from "./ContainerBlock";
 import type { BookColor, SectionWithPassages } from "./types";
 import type { Passage, PassageType, PassageContainer } from "@chronolore/shared";
-=======
-import type { BookColor } from "./types";
-import type { Passage, PassageType } from "@chronolore/shared";
->>>>>>> chrn-42-subsections
 
 interface RevealPointInfo {
   entrySlug: string;
@@ -33,11 +28,8 @@ interface SectionData {
   createdAt: string;
   updatedAt: string;
   passages: PassageWithReveal[];
-<<<<<<< HEAD
   containers?: PassageContainer[];
-=======
   children?: SectionData[];
->>>>>>> chrn-42-subsections
 }
 
 interface Props {
@@ -50,17 +42,13 @@ interface Props {
   onSavePassage: (passageId: string, data: { body?: string; revealAtEntry?: string; revealAtSegment?: string; containerId?: string | null; containerMeta?: any }) => Promise<void>;
   onDeletePassage: (passageId: string) => void;
   onSubmitForReview: (passageId: string) => void;
-<<<<<<< HEAD
   onAddPassage: (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string; containerId?: string; containerMeta?: any }) => Promise<void>;
   onCreateContainer?: (sectionId: string, data: { type: string; title?: string; config?: any; sortOrder?: number }) => Promise<void>;
   onUpdateContainer?: (containerId: string, data: { title?: string; config?: any }) => Promise<void>;
   onDeleteContainer?: (containerId: string) => Promise<void>;
-=======
-  onAddPassage: (sectionId: string, data: { body: string; passageType: PassageType; revealAtEntry?: string; revealAtSegment?: string }) => Promise<void>;
   onAddSubsection: (parentId: string, heading: string) => Promise<void>;
   onMoveSection?: (sectionId: string, newParentId: string | null) => Promise<void>;
   allTopLevelSections?: { id: string; heading: string }[];
->>>>>>> chrn-42-subsections
 }
 
 /** Max depth for subsections: 1=H2, 2=H3, 3=H4 */
@@ -77,26 +65,20 @@ export function SectionBlock({
   onDeletePassage,
   onSubmitForReview,
   onAddPassage,
-<<<<<<< HEAD
   onCreateContainer,
   onUpdateContainer,
   onDeleteContainer,
-=======
   onAddSubsection,
   onMoveSection,
   allTopLevelSections,
->>>>>>> chrn-42-subsections
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [editingHeading, setEditingHeading] = useState(false);
   const [headingDraft, setHeadingDraft] = useState(section.heading);
   const [showNewPassage, setShowNewPassage] = useState(false);
-<<<<<<< HEAD
   const [addingToContainer, setAddingToContainer] = useState<string | null>(null);
-=======
   const [showNewSubsection, setShowNewSubsection] = useState(false);
   const [newSubsectionHeading, setNewSubsectionHeading] = useState("");
->>>>>>> chrn-42-subsections
 
   const {
     attributes,
@@ -198,7 +180,6 @@ export function SectionBlock({
 
       {!collapsed && (
         <div className="block-section__body">
-<<<<<<< HEAD
           {/* Render containers with their passages */}
           {(section.containers ?? []).map((container) => {
             const containerPassages = section.passages.filter((p) => p.containerId === container.id);
@@ -265,21 +246,6 @@ export function SectionBlock({
                   onSubmitForReview={onSubmitForReview}
                 />
               ))}
-=======
-          {/* Passages belonging directly to this section */}
-          <SortableContext items={passageIds} strategy={verticalListSortingStrategy}>
-            {section.passages.map((passage) => (
-              <PassageBlock
-                key={passage.id}
-                passage={passage}
-                universeSlug={universeSlug}
-                bookColor={getBookColor(passage)}
-                onSave={onSavePassage}
-                onDelete={onDeletePassage}
-                onSubmitForReview={onSubmitForReview}
-              />
-            ))}
->>>>>>> chrn-42-subsections
           </SortableContext>
 
           {showNewPassage ? (
