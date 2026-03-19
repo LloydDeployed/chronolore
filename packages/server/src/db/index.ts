@@ -10,7 +10,8 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const client = postgres(connectionString);
+const dbUrl: string = connectionString;
+const client = postgres(dbUrl);
 
 export const db = drizzle(client, { schema });
 
@@ -18,12 +19,12 @@ export const db = drizzle(client, { schema });
 export async function checkConnection(): Promise<boolean> {
   try {
     await client`SELECT 1`;
-    const url = new URL(connectionString);
+    const url = new URL(dbUrl);
     console.log(`✓ Database connected (${url.hostname}:${url.port}/${url.pathname.slice(1)})`);
     return true;
   } catch (err: any) {
     console.error(`✗ Database connection failed: ${err.message}`);
-    console.error(`  URL: ${connectionString.replace(/\/\/.*@/, '//<redacted>@')}`);
+    console.error(`  URL: ${dbUrl.replace(/\/\/.*@/, '//<redacted>@')}`);
     console.error(`  Is the database running? (docker compose up -d db)`);
     return false;
   }
