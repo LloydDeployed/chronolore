@@ -1,4 +1,5 @@
 import type { EntryProgress, Section, Passage, PassageContainer, Infobox, InfoboxField } from "@chronolore/shared";
+import { getStoredToken, notifyAuthExpired } from "../auth/session";
 
 const BASE = "/api";
 
@@ -17,7 +18,7 @@ function getProgressHeader(universeSlug: string): Record<string, string> {
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem("chronolore-token");
+  const token = getStoredToken();
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }
@@ -43,6 +44,9 @@ async function fetchJson<T>(
     headers,
     body: options?.body ? JSON.stringify(options.body) : undefined,
   });
+  if (options?.auth && res.status === 401) {
+    notifyAuthExpired();
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(err.error ?? `HTTP ${res.status}`);

@@ -83,3 +83,16 @@ A functional spoiler-safe wiki for Mistborn Era 1 that demonstrates the core con
 - Deploy to hosting
 - Landing page explaining the concept
 - README + contributing guide
+
+## Post-M4 Follow-Up Queue
+
+### Fast Follows
+- [ ] Gracefully clear expired auth sessions instead of leaving the header in a stale signed-in state
+- [ ] Add persistent navigation back to the active universe directory from the header
+- [ ] Make moderation navigation more explicit with direct review/open-article actions
+
+### Future Work
+- [ ] Add an article-page sidebar or drawer for progress controls
+- [ ] Decide and implement behavior when progress regresses to before the current article's introduction point
+- [ ] Add moderation diff views for updates to already-published content
+- [ ] Add moderation sub-routes for selected articles/items so review detail pages are deep-linkable

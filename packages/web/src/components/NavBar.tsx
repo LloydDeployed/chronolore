@@ -34,6 +34,13 @@ export function NavBar({ user, onAuth, onLogout }: Props) {
       <Link to="/" className="nav-brand">
         Chronolore
       </Link>
+      {universeSlug && (
+        <div className="nav-context-links">
+          <Link to={`/${universeSlug}`} className="nav-context-link">
+            {universeSlug.replace(/-/g, " ")}
+          </Link>
+        </div>
+      )}
       <div className="nav-right">
         {user ? (
           <div className="user-menu" ref={menuRef}>

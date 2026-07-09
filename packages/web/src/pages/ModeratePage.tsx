@@ -107,6 +107,7 @@ function ArticleReview({
   const [error, setError] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<{ id: string; type: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  useTitle(data?.article?.title ? `Review: ${data.article.title}` : "Review Queue");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,6 +168,19 @@ function ArticleReview({
         <div className="review-article-meta">
           <StatusBadge status={article.status} />
           <RevealTag rp={article.revealPoint} />
+        </div>
+        <div className="review-article-links">
+          <Link to={`/${universeSlug}`} className="review-article-link">
+            Universe Directory
+          </Link>
+          {article.status === "published" && (
+            <Link
+              to={`/${universeSlug}/articles/${article.slug}`}
+              className="review-article-link"
+            >
+              Open Public Article
+            </Link>
+          )}
         </div>
 
         {articleNeedsReview && (
@@ -313,13 +327,8 @@ export function ModeratePage({ isAuthenticated }: Props) {
       ) : (
         <div className="queue-list">
           {grouped.map((item) => {
-            const totalPending = (item.articlePending ? 1 : 0) + item.pendingPassages + item.pendingFields;
             return (
-              <div
-                key={item.id}
-                className="queue-card"
-                onClick={() => setSelectedArticle(item.slug)}
-              >
+              <div key={item.id} className="queue-card">
                 <div className="queue-card-main">
                   <h3 className="queue-card-title">{item.title}</h3>
                   <StatusBadge status={item.status} />
@@ -335,6 +344,22 @@ export function ModeratePage({ isAuthenticated }: Props) {
                       <span className="queue-count-tag">{item.pendingFields} field{item.pendingFields !== 1 ? "s" : ""}</span>
                     )}
                   </span>
+                </div>
+                <div className="queue-card-actions">
+                  <button
+                    className="btn-primary btn-sm"
+                    onClick={() => setSelectedArticle(item.slug)}
+                  >
+                    Review
+                  </button>
+                  {item.status === "published" && (
+                    <Link
+                      to={`/${universeSlug}/articles/${item.slug}`}
+                      className="btn-secondary btn-sm"
+                    >
+                      Open Article
+                    </Link>
+                  )}
                 </div>
               </div>
             );
