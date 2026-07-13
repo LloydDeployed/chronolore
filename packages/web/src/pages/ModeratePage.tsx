@@ -22,6 +22,27 @@ interface RevealPoint {
   segmentName: string | null;
 }
 
+interface ReviewPassage {
+  id: string;
+  body: string;
+  publishedBody?: string | null;
+  hasPendingRevision?: boolean;
+  displayStatus?: string;
+  status: string;
+  passageType: string;
+  revealPoint: RevealPoint | null;
+}
+
+interface ReviewField {
+  id: string;
+  fieldLabel: string;
+  fieldValue: string;
+  mode: string;
+  displayStatus?: string;
+  status: string;
+  revealPoint: RevealPoint | null;
+}
+
 interface GroupedItem {
   id: string;
   slug: string;
@@ -62,17 +83,26 @@ function renderReviewSection(
         <p className="review-empty">No passages in this section</p>
       ) : (
         <>
-          {section.passages.map((p: any) => (
-            <div key={p.id} className={`review-passage ${p.status === "review" ? "review-passage--pending" : ""}`}>
+          {section.passages.map((p: ReviewPassage) => (
+            <div
+              key={p.id}
+              className={`review-passage ${(p.displayStatus ?? p.status) === "review" ? "review-passage--pending" : ""}`}
+            >
               <div className="review-passage-content">
                 <div className="review-passage-meta">
-                  <StatusBadge status={p.status} />
+                  <StatusBadge status={p.displayStatus ?? p.status} />
                   <span className="queue-block-type">{p.passageType}</span>
                   <RevealTag rp={p.revealPoint} />
                 </div>
                 <div className="review-passage-body"><TiptapRenderer content={p.body} /></div>
+                {p.hasPendingRevision && p.publishedBody && p.publishedBody !== p.body && (
+                  <div className="review-passage-live">
+                    <strong>Currently live:</strong>
+                    <div><TiptapRenderer content={p.publishedBody} /></div>
+                  </div>
+                )}
               </div>
-              {p.status === "review" && (
+              {(p.displayStatus ?? p.status) === "review" && (
                 <div className="review-passage-actions">
                   <button className="btn-primary btn-xs" onClick={() => handlePublish("passage", p.id)} disabled={articleNeedsReview} title={articleNeedsReview ? "Approve article first" : ""}>✓ Publish</button>
                   <button className="btn-secondary btn-xs" onClick={() => setRejectTarget({ id: p.id, type: "passage" })}>✗ Reject</button>
@@ -210,15 +240,15 @@ function ArticleReview({
             <div className="review-infobox">
               <h3>Infobox</h3>
               <div className="review-infobox-fields">
-                {infobox.fields.map((f: any) => (
-                  <div key={f.id} className={`review-field ${f.status === "review" ? "review-field--pending" : ""}`}>
+                {infobox.fields.map((f: ReviewField) => (
+                  <div key={f.id} className={`review-field ${(f.displayStatus ?? f.status) === "review" ? "review-field--pending" : ""}`}>
                     <div className="review-field-content">
                       <strong>{f.fieldLabel}:</strong> {f.fieldValue}
-                      <StatusBadge status={f.status} />
+                      <StatusBadge status={f.displayStatus ?? f.status} />
                       <RevealTag rp={f.revealPoint} />
                       <span className="review-field-mode">{f.mode}</span>
                     </div>
-                    {f.status === "review" && (
+                    {(f.displayStatus ?? f.status) === "review" && (
                       <div className="review-field-actions">
                         <button className="btn-primary btn-xs" onClick={() => handlePublish("field", f.id)} disabled={articleNeedsReview} title={articleNeedsReview ? "Approve article first" : ""}>✓</button>
                         <button className="btn-secondary btn-xs" onClick={() => setRejectTarget({ id: f.id, type: "field" })}>✗</button>

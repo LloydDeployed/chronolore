@@ -356,7 +356,7 @@ async function seed() {
   // Infobox
   const [kInfobox] = await db
     .insert(infoboxes)
-    .values({ articleId: kelsier.id })
+    .values({ articleId: kelsier.id, status: "published" })
     .returning();
 
   await db.insert(infoboxFields).values([
@@ -402,7 +402,7 @@ async function seed() {
     })
     .returning();
 
-  const [vInfobox] = await db.insert(infoboxes).values({ articleId: vin.id }).returning();
+  const [vInfobox] = await db.insert(infoboxes).values({ articleId: vin.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: vInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpPrologue.id, sortOrder: 0, status: "published" },
     { infoboxId: vInfobox.id, fieldKey: "aliases", fieldLabel: "Aliases", fieldValue: "Valette Renoux", mode: "append", revealPointId: rpCh7.id, sortOrder: 1, status: "published" },
@@ -581,7 +581,7 @@ async function seed() {
     title: "Waxillium Ladrian", introducedAt: rpAoLPrologue.id, status: "published",
   }).returning();
 
-  const [waxInfobox] = await db.insert(infoboxes).values({ articleId: wax.id }).returning();
+  const [waxInfobox] = await db.insert(infoboxes).values({ articleId: wax.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: waxInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpAoLPrologue.id, sortOrder: 0, status: "published" },
     { infoboxId: waxInfobox.id, fieldKey: "aliases", fieldLabel: "Aliases", fieldValue: "Wax", mode: "append", revealPointId: rpAoLPrologue.id, sortOrder: 1, status: "published" },
@@ -610,7 +610,7 @@ async function seed() {
     title: "Wayne", introducedAt: rpAoL2.id, status: "published",
   }).returning();
 
-  const [wayneInfobox] = await db.insert(infoboxes).values({ articleId: wayne.id }).returning();
+  const [wayneInfobox] = await db.insert(infoboxes).values({ articleId: wayne.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: wayneInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpAoL2.id, sortOrder: 0, status: "published" },
     { infoboxId: wayneInfobox.id, fieldKey: "species", fieldLabel: "Species", fieldValue: "Human", mode: "replace", revealPointId: rpAoL2.id, sortOrder: 1, status: "published" },
@@ -631,7 +631,7 @@ async function seed() {
     title: "Marasi Colms", introducedAt: rpAoL4.id, status: "published",
   }).returning();
 
-  const [marasiInfobox] = await db.insert(infoboxes).values({ articleId: marasi.id }).returning();
+  const [marasiInfobox] = await db.insert(infoboxes).values({ articleId: marasi.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: marasiInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpAoL4.id, sortOrder: 0, status: "published" },
     { infoboxId: marasiInfobox.id, fieldKey: "abilities", fieldLabel: "Abilities", fieldValue: "Pulser (cadmium Allomancy — slows time in a bubble)", mode: "replace", revealPointId: rpAoL4.id, sortOrder: 1, status: "published" },
@@ -652,7 +652,7 @@ async function seed() {
     title: "Steris Harms", introducedAt: rpAoL4.id, status: "published",
   }).returning();
 
-  const [sterisInfobox] = await db.insert(infoboxes).values({ articleId: steris.id }).returning();
+  const [sterisInfobox] = await db.insert(infoboxes).values({ articleId: steris.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: sterisInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpAoL4.id, sortOrder: 0, status: "published" },
     { infoboxId: sterisInfobox.id, fieldKey: "species", fieldLabel: "Species", fieldValue: "Human (not an Allomancer)", mode: "replace", revealPointId: rpAoL4.id, sortOrder: 1, status: "published" },
@@ -673,7 +673,7 @@ async function seed() {
     title: "MeLaan", introducedAt: rpSoS15.id, status: "published",
   }).returning();
 
-  const [melaanInfobox] = await db.insert(infoboxes).values({ articleId: melaan.id }).returning();
+  const [melaanInfobox] = await db.insert(infoboxes).values({ articleId: melaan.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: melaanInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpSoS15.id, sortOrder: 0, status: "published" },
     { infoboxId: melaanInfobox.id, fieldKey: "species", fieldLabel: "Species", fieldValue: "Kandra (Third Generation)", mode: "replace", revealPointId: rpSoS15.id, sortOrder: 1, status: "published" },
@@ -707,7 +707,7 @@ async function seed() {
     title: "Vasher", introducedAt: rpWBPrologue.id, status: "published",
   }).returning();
 
-  const [vasherInfobox] = await db.insert(infoboxes).values({ articleId: vasher.id }).returning();
+  const [vasherInfobox] = await db.insert(infoboxes).values({ articleId: vasher.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: vasherInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpWBPrologue.id, sortOrder: 0, status: "published" },
     { infoboxId: vasherInfobox.id, fieldKey: "aliases", fieldLabel: "Aliases", fieldValue: "Talaxin", mode: "append", revealPointId: rpWB32.id, sortOrder: 1, status: "published" },
@@ -729,7 +729,7 @@ async function seed() {
     title: "Vivenna", introducedAt: rpWB1.id, status: "published",
   }).returning();
 
-  const [vivennaInfobox] = await db.insert(infoboxes).values({ articleId: vivenna.id }).returning();
+  const [vivennaInfobox] = await db.insert(infoboxes).values({ articleId: vivenna.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: vivennaInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpWB1.id, sortOrder: 0, status: "published" },
     { infoboxId: vivennaInfobox.id, fieldKey: "species", fieldLabel: "Species", fieldValue: "Human (Royal Idrian)", mode: "replace", revealPointId: rpWB1.id, sortOrder: 1, status: "published" },
@@ -750,7 +750,7 @@ async function seed() {
     title: "Siri", introducedAt: rpWB2.id, status: "published",
   }).returning();
 
-  const [siriInfobox] = await db.insert(infoboxes).values({ articleId: siri.id }).returning();
+  const [siriInfobox] = await db.insert(infoboxes).values({ articleId: siri.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: siriInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpWB2.id, sortOrder: 0, status: "published" },
     { infoboxId: siriInfobox.id, fieldKey: "species", fieldLabel: "Species", fieldValue: "Human (Royal Idrian)", mode: "replace", revealPointId: rpWB2.id, sortOrder: 1, status: "published" },
@@ -771,7 +771,7 @@ async function seed() {
     title: "Lightsong", introducedAt: rpWB3.id, status: "published",
   }).returning();
 
-  const [lightsongInfobox] = await db.insert(infoboxes).values({ articleId: lightsong.id }).returning();
+  const [lightsongInfobox] = await db.insert(infoboxes).values({ articleId: lightsong.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: lightsongInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive (Returned)", mode: "replace", revealPointId: rpWB3.id, sortOrder: 0, status: "published" },
     { infoboxId: lightsongInfobox.id, fieldKey: "aliases", fieldLabel: "Aliases", fieldValue: "Lightsong the Bold", mode: "append", revealPointId: rpWB3.id, sortOrder: 1, status: "published" },
@@ -795,7 +795,7 @@ async function seed() {
     title: "Nightblood", introducedAt: rpWBPrologue.id, status: "published",
   }).returning();
 
-  const [nightbloodInfobox] = await db.insert(infoboxes).values({ articleId: nightblood.id }).returning();
+  const [nightbloodInfobox] = await db.insert(infoboxes).values({ articleId: nightblood.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: nightbloodInfobox.id, fieldKey: "type", fieldLabel: "Type", fieldValue: "Sentient Awakened sword", mode: "replace", revealPointId: rpWBPrologue.id, sortOrder: 0, status: "published" },
     { infoboxId: nightbloodInfobox.id, fieldKey: "command", fieldLabel: "Command", fieldValue: "\"Destroy evil\"", mode: "replace", revealPointId: rpWBPrologue.id, sortOrder: 1, status: "published" },
@@ -821,7 +821,7 @@ async function seed() {
     title: "Hoid", introducedAt: rpTFECh19.id, status: "published",
   }).returning();
 
-  const [hoidInfobox] = await db.insert(infoboxes).values({ articleId: hoid.id }).returning();
+  const [hoidInfobox] = await db.insert(infoboxes).values({ articleId: hoid.id, status: "published" }).returning();
   await db.insert(infoboxFields).values([
     { infoboxId: hoidInfobox.id, fieldKey: "status", fieldLabel: "Status", fieldValue: "Alive", mode: "replace", revealPointId: rpTFECh19.id, sortOrder: 0, status: "published" },
     { infoboxId: hoidInfobox.id, fieldKey: "aliases", fieldLabel: "Aliases", fieldValue: "Hoid", mode: "append", revealPointId: rpTFECh19.id, sortOrder: 1, status: "published" },

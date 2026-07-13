@@ -19,10 +19,10 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "pnpm --filter @chronolore/server dev",
+      command: "pnpm --dir packages/server dev",
       url: "http://localhost:4001/api/health",
-      reuseExistingServer: !process.env.CI,
-      cwd: ".",
+      reuseExistingServer: false,
+      cwd: __dirname,
       env: {
         DATABASE_URL: "postgresql://chronolore:chronolore@127.0.0.1:5436/chronolore",
         JWT_SECRET: "chronolore-dev-secret-change-in-production",
@@ -30,10 +30,10 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm --filter @chronolore/web dev",
+      command: "pnpm --dir packages/web dev",
       url: "http://localhost:4000",
-      reuseExistingServer: !process.env.CI,
-      cwd: ".",
+      reuseExistingServer: false,
+      cwd: __dirname,
     },
   ],
 });

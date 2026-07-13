@@ -45,7 +45,7 @@ All new contributions start as **draft** and must be reviewed by a moderator bef
 git clone https://github.com/LloydDeployed/chronolore.git
 cd chronolore
 pnpm install
-docker compose up -d     # Postgres on port 5435
+docker compose up -d     # Postgres on port 5436
 pnpm db:migrate          # Push schema
 pnpm db:seed             # Seed Mistborn Era 1 data
 pnpm dev                 # Frontend :4000, API :4001

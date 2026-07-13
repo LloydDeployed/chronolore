@@ -153,6 +153,10 @@ export interface Passage {
   latestRevision?: PassageRevision | null;
   /** Published revision body (for diff display when editing a published passage) */
   publishedBody?: string | null;
+  /** Display status for moderation views where a published passage may have a review revision */
+  displayStatus?: ArticleStatus;
+  /** True when a published passage has a pending review revision */
+  hasPendingRevision?: boolean;
 }
 
 export interface PassageRevision {
@@ -197,6 +201,8 @@ export interface InfoboxField {
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
+  /** Display status for moderation views */
+  displayStatus?: ArticleStatus;
 }
 
 // ── Users ──

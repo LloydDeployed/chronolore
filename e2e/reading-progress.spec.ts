@@ -53,7 +53,9 @@ test.describe("Reading progress", () => {
 
     // Navigate to Kelsier and verify ch3 content is visible
     await page.getByText("Kelsier").click();
-    await expect(page.getByText("Survivor of Hathsin")).toBeVisible();
+    await expect(
+      page.locator(".article-content").getByText("Known as the Survivor of Hathsin"),
+    ).toBeVisible();
   });
 
   test("progress is stored per-universe in localStorage", async ({ page }) => {

@@ -116,7 +116,7 @@ export function EditArticlePage({ isAuthenticated }: Props) {
       setArticle(updated);
       setEditingTitle(false);
       if (updated.slug !== articleSlug) {
-        navigate(`/${universeSlug}/${updated.slug}/edit`, { replace: true });
+        navigate(`/${universeSlug}/articles/${updated.slug}/edit`, { replace: true });
       }
     } catch (err: any) {
       setError(err.message);

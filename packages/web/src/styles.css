@@ -1424,6 +1424,23 @@ a:hover {
   line-height: 1.5;
 }
 
+.review-passage-live {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: var(--radius);
+}
+
+.review-passage-live strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
 .review-passage-actions {
   display: flex;
   gap: 0.35rem;
@@ -1762,6 +1779,23 @@ a:hover {
     width: 100%;
     float: none;
     margin: 0 0 1.5rem 0;
+  }
+
+  .review-action-bar,
+  .review-passage,
+  .review-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .review-passage-actions,
+  .review-field-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .review-action-label {
+    width: 100%;
   }
 }
 

@@ -79,6 +79,50 @@ async function isModerator(
   return false;
 }
 
+async function getUniversePassage(universeId: string, passageId: string) {
+  const rows = await db
+    .select({
+      passage: passages,
+      articleId: articles.id,
+    })
+    .from(passages)
+    .innerJoin(sections, eq(sections.id, passages.sectionId))
+    .innerJoin(articles, eq(articles.id, sections.articleId))
+    .where(and(eq(articles.universeId, universeId), eq(passages.id, passageId)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function getUniverseInfobox(universeId: string, infoboxId: string) {
+  const rows = await db
+    .select({
+      infobox: infoboxes,
+      articleId: articles.id,
+    })
+    .from(infoboxes)
+    .innerJoin(articles, eq(articles.id, infoboxes.articleId))
+    .where(and(eq(articles.universeId, universeId), eq(infoboxes.id, infoboxId)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function getUniverseInfoboxField(universeId: string, fieldId: string) {
+  const rows = await db
+    .select({
+      field: infoboxFields,
+      articleId: articles.id,
+    })
+    .from(infoboxFields)
+    .innerJoin(infoboxes, eq(infoboxes.id, infoboxFields.infoboxId))
+    .innerJoin(articles, eq(articles.id, infoboxes.articleId))
+    .where(and(eq(articles.universeId, universeId), eq(infoboxFields.id, fieldId)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
 // GET /api/universes/:universeSlug/moderate/queue — review queue
 router.get("/queue", async (req: AuthRequest, res: Response) => {
   const universeSlug = req.params.universeSlug as string;
@@ -424,6 +468,46 @@ router.get("/articles/:articleSlug", async (req: AuthRequest, res: Response) => 
         .orderBy(asc(passages.sortOrder));
     }
 
+    const allPassageIds = allPassages.map((p) => p.passage.id);
+    const reviewRevisionMap = new Map<string, typeof passageRevisions.$inferSelect>();
+    const publishedRevisionBodyMap = new Map<string, string>();
+    if (allPassageIds.length > 0) {
+      const reviewRevisions = await db
+        .select()
+        .from(passageRevisions)
+        .where(
+          and(
+            inArray(passageRevisions.passageId, allPassageIds),
+            eq(passageRevisions.status, "review"),
+          ),
+        )
+        .orderBy(desc(passageRevisions.createdAt));
+
+      for (const revision of reviewRevisions) {
+        if (!reviewRevisionMap.has(revision.passageId)) {
+          reviewRevisionMap.set(revision.passageId, revision);
+        }
+      }
+
+      const publishedRevisionIds = allPassages
+        .map((p) => p.passage.publishedRevisionId)
+        .filter((id): id is string => !!id);
+
+      if (publishedRevisionIds.length > 0) {
+        const publishedRevisions = await db
+          .select({
+            id: passageRevisions.id,
+            body: passageRevisions.body,
+          })
+          .from(passageRevisions)
+          .where(inArray(passageRevisions.id, publishedRevisionIds));
+
+        for (const revision of publishedRevisions) {
+          publishedRevisionBodyMap.set(revision.id, revision.body);
+        }
+      }
+    }
+
     // Get infobox and fields
     const [infobox] = await db
       .select()
@@ -453,6 +537,16 @@ router.get("/articles/:articleSlug", async (req: AuthRequest, res: Response) => 
         .filter(p => p.passage.sectionId === s.id)
         .map(p => ({
           ...p.passage,
+          body: reviewRevisionMap.get(p.passage.id)?.body ?? p.passage.body,
+          publishedBody: reviewRevisionMap.has(p.passage.id)
+            ? (
+                p.passage.publishedRevisionId
+                  ? publishedRevisionBodyMap.get(p.passage.publishedRevisionId)
+                  : p.passage.body
+              ) ?? p.passage.body
+            : null,
+          hasPendingRevision: reviewRevisionMap.has(p.passage.id),
+          displayStatus: reviewRevisionMap.has(p.passage.id) ? "review" : p.passage.status,
           revealPoint: p.entryName
             ? { entryName: p.entryName, segmentName: p.segmentName }
             : null,
@@ -463,6 +557,7 @@ router.get("/articles/:articleSlug", async (req: AuthRequest, res: Response) => 
 
     const fieldsWithReveal = allFields.map(f => ({
       ...f.field,
+      displayStatus: f.field.status,
       revealPoint: f.entryName
         ? { entryName: f.entryName, segmentName: f.segmentName }
         : null,
@@ -503,7 +598,7 @@ router.post(
     const [updated] = await db
       .update(articles)
       .set({ status: "published", updatedAt: new Date() })
-      .where(eq(articles.id, articleId))
+      .where(and(eq(articles.id, articleId), eq(articles.universeId, universe.id)))
       .returning();
 
     if (!updated)
@@ -539,7 +634,7 @@ router.post(
         rejectionReason: reason || null,
         updatedAt: new Date(),
       })
-      .where(eq(articles.id, articleId))
+      .where(and(eq(articles.id, articleId), eq(articles.universeId, universe.id)))
       .returning();
 
     if (!updated)
@@ -567,6 +662,10 @@ router.post(
       return res.status(403).json({ error: "Moderator access required" });
     }
 
+    const passageRow = await getUniversePassage(universe.id, passageId);
+    if (!passageRow)
+      return res.status(404).json({ error: "Passage not found" });
+
     // Find the latest review revision for this passage
     const [reviewRevision] = await db
       .select()
@@ -580,7 +679,7 @@ router.post(
 
     if (reviewRevision) {
       // Mark previous published revision as superseded (if any)
-      const [passage] = await db.select().from(passages).where(eq(passages.id, passageId));
+      const passage = passageRow.passage;
       if (passage?.publishedRevisionId) {
         await db.update(passageRevisions)
           .set({ status: "published" }) // keep as published (historical)
@@ -607,10 +706,29 @@ router.post(
 
       res.json(updated);
     } else {
-      // No revision in review — fall back to legacy behavior
+      let publishedRevisionId = passageRow.passage.publishedRevisionId;
+      if (!publishedRevisionId) {
+        const [publishedRevision] = await db
+          .insert(passageRevisions)
+          .values({
+            passageId,
+            body: passageRow.passage.body,
+            passageType: passageRow.passage.passageType,
+            status: "published",
+            createdBy: req.userId,
+            publishedAt: new Date(),
+          })
+          .returning();
+        publishedRevisionId = publishedRevision.id;
+      }
+
       const [updated] = await db
         .update(passages)
-        .set({ status: "published", updatedAt: new Date() })
+        .set({
+          status: "published",
+          publishedRevisionId,
+          updatedAt: new Date(),
+        })
         .where(eq(passages.id, passageId))
         .returning();
 
@@ -641,6 +759,10 @@ router.post(
       return res.status(403).json({ error: "Moderator access required" });
     }
 
+    const passageRow = await getUniversePassage(universe.id, passageId);
+    if (!passageRow)
+      return res.status(404).json({ error: "Passage not found" });
+
     // Reject the review revision
     const [reviewRevision] = await db
       .select()
@@ -659,7 +781,7 @@ router.post(
     }
 
     // Check if passage has a published revision — if so, keep it published
-    const [passage] = await db.select().from(passages).where(eq(passages.id, passageId));
+    const passage = passageRow.passage;
     if (passage?.publishedRevisionId) {
       // Passage stays published; only the revision is rejected
       // Revert passage body to the published revision's body
@@ -721,18 +843,44 @@ router.post("/bulk", async (req: AuthRequest, res: Response) => {
   let passagesUpdated = 0;
 
   if (articleIds && articleIds.length > 0) {
-    const updateData: any = { status: newStatus, updatedAt: new Date() };
-    if (action === "reject") updateData.rejectionReason = reason || null;
-    await db
-      .update(articles)
-      .set(updateData)
-      .where(inArray(articles.id, articleIds));
-    articlesUpdated = articleIds.length;
+    const scopedArticles = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.universeId, universe.id),
+          inArray(articles.id, articleIds),
+        ),
+      );
+    const scopedArticleIds = scopedArticles.map((article) => article.id);
+
+    if (scopedArticleIds.length > 0) {
+      const updateData: any = { status: newStatus, updatedAt: new Date() };
+      if (action === "reject") updateData.rejectionReason = reason || null;
+      await db
+        .update(articles)
+        .set(updateData)
+        .where(inArray(articles.id, scopedArticleIds));
+      articlesUpdated = scopedArticleIds.length;
+    }
   }
 
   if (passageIds && passageIds.length > 0) {
+    const scopedPassages = await db
+      .select({ id: passages.id })
+      .from(passages)
+      .innerJoin(sections, eq(sections.id, passages.sectionId))
+      .innerJoin(articles, eq(articles.id, sections.articleId))
+      .where(
+        and(
+          eq(articles.universeId, universe.id),
+          inArray(passages.id, passageIds),
+        ),
+      );
+    const scopedPassageIds = scopedPassages.map((passage) => passage.id);
+
     // Update revisions in review for these passages
-    for (const pid of passageIds) {
+    for (const pid of scopedPassageIds) {
       const [reviewRev] = await db
         .select()
         .from(passageRevisions)
@@ -770,13 +918,44 @@ router.post("/bulk", async (req: AuthRequest, res: Response) => {
           }
         }
       } else {
-        // No revision — legacy behavior
-        const updateData: any = { status: newStatus, updatedAt: new Date() };
-        if (action === "reject") updateData.rejectionReason = reason || null;
-        await db.update(passages).set(updateData).where(eq(passages.id, pid));
+        if (action === "publish") {
+          const [passage] = await db
+            .select()
+            .from(passages)
+            .where(eq(passages.id, pid));
+
+          let publishedRevisionId = passage?.publishedRevisionId ?? null;
+          if (passage && !publishedRevisionId) {
+            const [publishedRevision] = await db
+              .insert(passageRevisions)
+              .values({
+                passageId: pid,
+                body: passage.body,
+                passageType: passage.passageType,
+                status: "published",
+                createdBy: req.userId,
+                publishedAt: new Date(),
+              })
+              .returning();
+            publishedRevisionId = publishedRevision.id;
+          }
+
+          await db
+            .update(passages)
+            .set({
+              status: "published",
+              publishedRevisionId,
+              updatedAt: new Date(),
+            })
+            .where(eq(passages.id, pid));
+        } else {
+          const updateData: any = { status: newStatus, updatedAt: new Date() };
+          updateData.rejectionReason = reason || null;
+          await db.update(passages).set(updateData).where(eq(passages.id, pid));
+        }
       }
     }
-    passagesUpdated = passageIds.length;
+    passagesUpdated = scopedPassageIds.length;
   }
 
   res.json({ action, articlesUpdated, passagesUpdated });
@@ -797,6 +976,10 @@ router.post(
       return res.status(404).json({ error: "Universe not found" });
     if (!(await isModerator(req.userId!, universe.id)))
       return res.status(403).json({ error: "Moderator access required" });
+
+    const scopedInfobox = await getUniverseInfobox(universe.id, infoboxId);
+    if (!scopedInfobox)
+      return res.status(404).json({ error: "Infobox not found" });
 
     const [updated] = await db
       .update(infoboxes)
@@ -824,6 +1007,10 @@ router.post(
       return res.status(404).json({ error: "Universe not found" });
     if (!(await isModerator(req.userId!, universe.id)))
       return res.status(403).json({ error: "Moderator access required" });
+
+    const scopedInfobox = await getUniverseInfobox(universe.id, infoboxId);
+    if (!scopedInfobox)
+      return res.status(404).json({ error: "Infobox not found" });
 
     const { reason } = req.body;
     const [updated] = await db
@@ -856,6 +1043,10 @@ router.post(
       return res.status(404).json({ error: "Universe not found" });
     if (!(await isModerator(req.userId!, universe.id)))
       return res.status(403).json({ error: "Moderator access required" });
+
+    const scopedField = await getUniverseInfoboxField(universe.id, fieldId);
+    if (!scopedField)
+      return res.status(404).json({ error: "Field not found" });
 
     const [updated] = await db
       .update(infoboxFields)
@@ -899,6 +1090,10 @@ router.post(
       return res.status(404).json({ error: "Universe not found" });
     if (!(await isModerator(req.userId!, universe.id)))
       return res.status(403).json({ error: "Moderator access required" });
+
+    const scopedField = await getUniverseInfoboxField(universe.id, fieldId);
+    if (!scopedField)
+      return res.status(404).json({ error: "Field not found" });
 
     const [updated] = await db
       .update(infoboxFields)

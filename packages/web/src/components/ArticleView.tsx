@@ -245,7 +245,7 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
         </span>
         <h1>{article.title}</h1>
         {canEdit && (
-          <Link to={`/${universeSlug}/${articleSlug}/edit`} className="btn-secondary btn-sm edit-article-link">
+          <Link to={`/${universeSlug}/articles/${articleSlug}/edit`} className="btn-secondary btn-sm edit-article-link">
             ✏️ Edit
           </Link>
         )}

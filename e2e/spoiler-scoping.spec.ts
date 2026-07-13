@@ -45,7 +45,7 @@ test.describe("Spoiler scoping", () => {
 
     // Chapter 3 passage (Survivor of Hathsin) should NOT be visible
     await expect(
-      page.getByText("Survivor of Hathsin"),
+      page.locator(".article-content").getByText("Known as the Survivor of Hathsin"),
     ).not.toBeVisible();
 
     // Legacy section (epilogue) should not be visible
@@ -68,7 +68,7 @@ test.describe("Spoiler scoping", () => {
 
     // ch3 — Survivor of Hathsin
     await expect(
-      page.getByText("Survivor of Hathsin"),
+      page.locator(".article-content").getByText("Known as the Survivor of Hathsin"),
     ).toBeVisible();
 
     // ch4 — Abilities section (Mistborn, Pits of Hathsin)
@@ -77,7 +77,7 @@ test.describe("Spoiler scoping", () => {
 
     // ch7 content should NOT be visible at ch5
     await expect(
-      page.getByText("iron and steel Pushing"),
+      page.getByText("iron and steel Pushing and Pulling"),
     ).not.toBeVisible();
 
     // Legacy (epilogue) should NOT be visible
@@ -96,15 +96,41 @@ test.describe("Spoiler scoping", () => {
 
     // Everything should be visible
     await expect(page.getByText("most infamous thief")).toBeVisible();
-    await expect(page.getByText("Survivor of Hathsin")).toBeVisible();
+    await expect(
+      page.locator(".article-content").getByText("Known as the Survivor of Hathsin"),
+    ).toBeVisible();
     await expect(page.getByText("full Mistborn")).toBeVisible();
-    await expect(page.getByText("iron and steel Pushing")).toBeVisible();
+    await expect(
+      page.getByText("iron and steel Pushing and Pulling"),
+    ).toBeVisible();
     await expect(page.getByText("Legacy")).toBeVisible();
-    await expect(page.getByText("martyr figure")).toBeVisible();
+    await expect(page.getByText("martyr figure for the skaa rebellion")).toBeVisible();
   });
 
-  // NOTE: Infobox field filtering is not tested via UI because the seed data
-  // creates infoboxes with default status "draft", which the article view
-  // endpoint filters out (requires status = "published"). To test infobox
-  // filtering, the seed would need to set infobox status to "published".
+  test("infobox fields respect reveal points and replace behavior", async ({
+    page,
+  }) => {
+    await page.goto("/cosmere");
+    await setProgressInBrowser(page, "cosmere", {
+      "the-final-empire": "chapter-1",
+    });
+
+    await page.goto("/cosmere/articles/kelsier");
+
+    const infobox = page.locator(".infobox");
+    await expect(infobox.getByText("Status")).toBeVisible();
+    await expect(infobox.getByText("Alive")).toBeVisible();
+    await expect(infobox.getByText("Kelsier's crew")).toBeVisible();
+    await expect(infobox.getByText("Survivor of Hathsin")).not.toBeVisible();
+    await expect(infobox.getByText("Deceased")).not.toBeVisible();
+
+    await setProgressInBrowser(page, "cosmere", {
+      "the-final-empire": "complete",
+    });
+    await page.goto("/cosmere/articles/kelsier");
+
+    await expect(infobox.getByText("Survivor of Hathsin")).toBeVisible();
+    await expect(infobox.getByText("Deceased")).toBeVisible();
+    await expect(infobox.getByText("Alive")).not.toBeVisible();
+  });
 });

@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit push",
+    "db:reset": "tsx src/db/reset.ts",
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
