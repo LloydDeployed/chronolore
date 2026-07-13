@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTitle } from "../hooks/useTitle";
 import { TiptapRenderer } from "../components/TiptapRenderer";
+import { AppShell } from "../components/AppShell";
+import { UniverseSidebar } from "../components/UniverseSidebar";
 import {
   getReviewQueue,
   getArticleForReview,
@@ -15,6 +17,10 @@ import {
 
 interface Props {
   isAuthenticated: boolean;
+  user: { username: string; role?: string } | null;
+  sidebarOpen: boolean;
+  onCloseSidebar?: () => void;
+  onOpenAuth?: () => void;
 }
 
 interface RevealPoint {
@@ -296,7 +302,7 @@ function ArticleReview({
 
 // ── Main Queue List ──
 
-export function ModeratePage({ isAuthenticated }: Props) {
+export function ModeratePage({ isAuthenticated, user, sidebarOpen, onCloseSidebar, onOpenAuth }: Props) {
   const { universeSlug } = useParams<{ universeSlug: string }>();
   useTitle("Review Queue");
   const [grouped, setGrouped] = useState<GroupedItem[]>([]);
@@ -320,82 +326,112 @@ export function ModeratePage({ isAuthenticated }: Props) {
 
   useEffect(() => { fetchQueue(); }, [fetchQueue]);
 
+  const sidebar = (
+    <div className={`shell-sidebar-panel${sidebarOpen ? " is-open" : ""}`}>
+      <UniverseSidebar
+        universeSlug={universeSlug!}
+        isAuthenticated={isAuthenticated}
+        username={user?.username}
+        userRole={user?.role}
+        currentPage="moderate"
+        onNavigate={onCloseSidebar}
+        onOpenAuth={onOpenAuth}
+      />
+    </div>
+  );
+
   if (!isAuthenticated) {
-    return <div className="moderate-page"><p className="empty-state">Sign in to access moderation.</p></div>;
+    return (
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="moderate-page"><p className="empty-state">Sign in to access moderation.</p></div>
+      </AppShell>
+    );
   }
 
   // Detail view for a specific article
   if (selectedArticle) {
     return (
-      <ArticleReview
-        universeSlug={universeSlug!}
-        articleSlug={selectedArticle}
-        onBack={() => setSelectedArticle(null)}
-        onAction={fetchQueue}
-      />
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <ArticleReview
+          universeSlug={universeSlug!}
+          articleSlug={selectedArticle}
+          onBack={() => setSelectedArticle(null)}
+          onAction={fetchQueue}
+        />
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="moderate-page">
-        <nav className="breadcrumb"><Link to={`/${universeSlug}`}>← Back</Link></nav>
-        <div className="form-error">{error}</div>
-      </div>
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="moderate-page">
+          <nav className="breadcrumb"><Link to={`/${universeSlug}`}>← Back</Link></nav>
+          <div className="form-error">{error}</div>
+        </div>
+      </AppShell>
     );
   }
 
-  if (loading) return <div className="moderate-page">Loading...</div>;
+  if (loading) {
+    return (
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="moderate-page">Loading...</div>
+      </AppShell>
+    );
+  }
 
   return (
-    <div className="moderate-page">
-      <nav className="breadcrumb"><Link to={`/${universeSlug}`}>← Back</Link></nav>
-      <h1>Review Queue</h1>
+    <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+      <div className="moderate-page">
+        <nav className="breadcrumb"><Link to={`/${universeSlug}`}>← Back</Link></nav>
+        <h1>Review Queue</h1>
 
-      {grouped.length === 0 ? (
-        <p className="empty-state">Nothing to review. 🎉</p>
-      ) : (
-        <div className="queue-list">
-          {grouped.map((item) => {
-            return (
-              <div key={item.id} className="queue-card">
-                <div className="queue-card-main">
-                  <h3 className="queue-card-title">{item.title}</h3>
-                  <StatusBadge status={item.status} />
-                </div>
-                <div className="queue-card-meta">
-                  <RevealTag rp={item.revealPoint} />
-                  <span className="queue-card-counts">
-                    {item.articlePending && <span className="queue-count-tag">article</span>}
-                    {item.pendingPassages > 0 && (
-                      <span className="queue-count-tag">{item.pendingPassages} passage{item.pendingPassages !== 1 ? "s" : ""}</span>
-                    )}
-                    {item.pendingFields > 0 && (
-                      <span className="queue-count-tag">{item.pendingFields} field{item.pendingFields !== 1 ? "s" : ""}</span>
-                    )}
-                  </span>
-                </div>
-                <div className="queue-card-actions">
-                  <button
-                    className="btn-primary btn-sm"
-                    onClick={() => setSelectedArticle(item.slug)}
-                  >
-                    Review
-                  </button>
-                  {item.status === "published" && (
-                    <Link
-                      to={`/${universeSlug}/articles/${item.slug}`}
-                      className="btn-secondary btn-sm"
+        {grouped.length === 0 ? (
+          <p className="empty-state">Nothing to review. 🎉</p>
+        ) : (
+          <div className="queue-list">
+            {grouped.map((item) => {
+              return (
+                <div key={item.id} className="queue-card">
+                  <div className="queue-card-main">
+                    <h3 className="queue-card-title">{item.title}</h3>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <div className="queue-card-meta">
+                    <RevealTag rp={item.revealPoint} />
+                    <span className="queue-card-counts">
+                      {item.articlePending && <span className="queue-count-tag">article</span>}
+                      {item.pendingPassages > 0 && (
+                        <span className="queue-count-tag">{item.pendingPassages} passage{item.pendingPassages !== 1 ? "s" : ""}</span>
+                      )}
+                      {item.pendingFields > 0 && (
+                        <span className="queue-count-tag">{item.pendingFields} field{item.pendingFields !== 1 ? "s" : ""}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="queue-card-actions">
+                    <button
+                      className="btn-primary btn-sm"
+                      onClick={() => setSelectedArticle(item.slug)}
                     >
-                      Open Article
-                    </Link>
-                  )}
+                      Review
+                    </button>
+                    {item.status === "published" && (
+                      <Link
+                        to={`/${universeSlug}/articles/${item.slug}`}
+                        className="btn-secondary btn-sm"
+                      >
+                        Open Article
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }

@@ -2,15 +2,20 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useProgress } from "../hooks/useProgress";
 import { useTitle } from "../hooks/useTitle";
-import { ProgressPicker } from "../components/ProgressPicker";
 import { ArticleList } from "../components/ArticleList";
 import { CreateArticle } from "../components/CreateArticle";
+import { AppShell } from "../components/AppShell";
+import { UniverseSidebar } from "../components/UniverseSidebar";
 
 interface Props {
   isAuthenticated: boolean;
+  user: { username: string; role?: string } | null;
+  sidebarOpen: boolean;
+  onCloseSidebar?: () => void;
+  onOpenAuth?: () => void;
 }
 
-export function UniversePage({ isAuthenticated }: Props) {
+export function UniversePage({ isAuthenticated, user, sidebarOpen, onCloseSidebar, onOpenAuth }: Props) {
   const { universeSlug } = useParams<{ universeSlug: string }>();
   const { progress, setEntryProgress, hasAnyProgress } = useProgress(
     universeSlug!,
@@ -22,15 +27,26 @@ export function UniversePage({ isAuthenticated }: Props) {
 
   return (
     <div className="universe-page">
-      <div className="universe-layout">
-        <aside className="sidebar">
-          <ProgressPicker
-            universeSlug={universeSlug!}
-            progress={progress}
-            onEntryChange={setEntryProgress}
-          />
-        </aside>
-        <main className="content">
+      <AppShell
+        sidebarOpen={sidebarOpen}
+        onCloseSidebar={onCloseSidebar}
+        sidebar={
+          <div className={`shell-sidebar-panel${sidebarOpen ? " is-open" : ""}`}>
+            <UniverseSidebar
+              universeSlug={universeSlug!}
+              progress={progress}
+              onEntryChange={setEntryProgress}
+              isAuthenticated={isAuthenticated}
+              username={user?.username}
+              userRole={user?.role}
+              currentPage="universe"
+              onNavigate={onCloseSidebar}
+              onOpenAuth={onOpenAuth}
+            />
+          </div>
+        }
+      >
+        <div className="content">
           {isAuthenticated && (
             <div className="content-actions">
               <button
@@ -39,20 +55,6 @@ export function UniversePage({ isAuthenticated }: Props) {
               >
                 + New Article
               </button>
-              <Link
-                to={`/${universeSlug}/drafts`}
-                className="btn-secondary"
-                style={{ marginLeft: "0.5rem", display: "inline-block" }}
-              >
-                My Drafts
-              </Link>
-              <Link
-                to={`/${universeSlug}/moderate`}
-                className="btn-secondary"
-                style={{ marginLeft: "0.5rem", display: "inline-block" }}
-              >
-                Review Queue
-              </Link>
             </div>
           )}
 
@@ -71,8 +73,8 @@ export function UniversePage({ isAuthenticated }: Props) {
               progressKey={progressKey}
             />
           )}
-        </main>
-      </div>
+        </div>
+      </AppShell>
 
       {showCreate && (
         <CreateArticle

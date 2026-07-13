@@ -1,15 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { AuthModal } from "./AuthModal";
+import menuOpenIconUrl from "./svgs/menu-open.svg";
 
 interface Props {
   user: { username: string; role?: string } | null;
-  onAuth: (token: string, user: any) => void;
+  onOpenAuth?: () => void;
   onLogout: () => void;
+  onToggleSidebar?: () => void;
+  showSidebarToggle?: boolean;
+  sidebarOpen?: boolean;
 }
 
-export function NavBar({ user, onAuth, onLogout }: Props) {
-  const [showAuth, setShowAuth] = useState(false);
+function formatUniverseName(universeSlug: string) {
+  return universeSlug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+
+export function NavBar({ user, onOpenAuth, onLogout, onToggleSidebar, showSidebarToggle = false, sidebarOpen = false }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -31,16 +41,34 @@ export function NavBar({ user, onAuth, onLogout }: Props) {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="nav-brand">
-        Chronolore
-      </Link>
-      {universeSlug && (
-        <div className="nav-context-links">
-          <Link to={`/${universeSlug}`} className="nav-context-link">
-            {universeSlug.replace(/-/g, " ")}
-          </Link>
-        </div>
-      )}
+      <div className="nav-left">
+        {showSidebarToggle && (
+          <button
+            type="button"
+            className={`sidebar-toggle${sidebarOpen ? " is-open" : ""}`}
+            onClick={onToggleSidebar}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <img
+              className={`sidebar-toggle__icon${sidebarOpen ? " is-open" : ""}`}
+              src={menuOpenIconUrl}
+              alt=""
+              aria-hidden="true"
+            />
+          </button>
+        )}
+        <Link to="/" className="nav-brand">
+          Chronolore
+        </Link>
+        {universeSlug && (
+          <div className="nav-context-links">
+            <Link to={`/${universeSlug}`} className="nav-context-link">
+              {formatUniverseName(universeSlug)}
+            </Link>
+          </div>
+        )}
+      </div>
       <div className="nav-right">
         {user ? (
           <div className="user-menu" ref={menuRef}>
@@ -95,22 +123,14 @@ export function NavBar({ user, onAuth, onLogout }: Props) {
           </div>
         ) : (
           <button
-            className="btn-primary btn-sm"
-            onClick={() => setShowAuth(true)}
+            className="btn-primary btn-sm nav-sign-in"
+            onClick={onOpenAuth}
           >
             Sign In
           </button>
         )}
       </div>
-      {showAuth && (
-        <AuthModal
-          onAuth={(token, user) => {
-            onAuth(token, user);
-            setShowAuth(false);
-          }}
-          onClose={() => setShowAuth(false)}
-        />
-      )}
+
     </nav>
   );
 }

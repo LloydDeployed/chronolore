@@ -3,9 +3,15 @@ import { useParams, Link } from "react-router-dom";
 import { useTitle } from "../hooks/useTitle";
 import { getUserDrafts, renameArticle, deleteArticle } from "../api/client";
 import { extractText } from "../components/TiptapRenderer";
+import { AppShell } from "../components/AppShell";
+import { UniverseSidebar } from "../components/UniverseSidebar";
 
 interface Props {
   isAuthenticated: boolean;
+  user: { username: string; role?: string } | null;
+  sidebarOpen: boolean;
+  onCloseSidebar?: () => void;
+  onOpenAuth?: () => void;
 }
 
 interface DraftArticle {
@@ -30,7 +36,7 @@ interface DraftPassage {
   updatedAt: string;
 }
 
-export function DraftsPage({ isAuthenticated }: Props) {
+export function DraftsPage({ isAuthenticated, user, sidebarOpen, onCloseSidebar, onOpenAuth }: Props) {
   const { universeSlug } = useParams<{ universeSlug: string }>();
   useTitle("My Drafts");
   const [drafts, setDrafts] = useState<{
@@ -83,27 +89,49 @@ export function DraftsPage({ isAuthenticated }: Props) {
     }
   };
 
+  const sidebar = (
+    <div className={`shell-sidebar-panel${sidebarOpen ? " is-open" : ""}`}>
+      <UniverseSidebar
+        universeSlug={universeSlug!}
+        isAuthenticated={isAuthenticated}
+        username={user?.username}
+        userRole={user?.role}
+        currentPage="drafts"
+        onNavigate={onCloseSidebar}
+        onOpenAuth={onOpenAuth}
+      />
+    </div>
+  );
+
   if (!isAuthenticated) {
     return (
-      <div className="drafts-page">
-        <p className="empty-state">Sign in to see your drafts.</p>
-      </div>
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="drafts-page">
+          <p className="empty-state">Sign in to see your drafts.</p>
+        </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="drafts-page">
-        <nav className="breadcrumb">
-          <Link to={`/${universeSlug}`}>← Back</Link>
-        </nav>
-        <div className="form-error">{error}</div>
-      </div>
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="drafts-page">
+          <nav className="breadcrumb">
+            <Link to={`/${universeSlug}`}>← Back</Link>
+          </nav>
+          <div className="form-error">{error}</div>
+        </div>
+      </AppShell>
     );
   }
 
   if (loading || !drafts) {
-    return <div className="drafts-page">Loading...</div>;
+    return (
+      <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+        <div className="drafts-page">Loading...</div>
+      </AppShell>
+    );
   }
 
   const groupedArticles = {
@@ -247,26 +275,28 @@ export function DraftsPage({ isAuthenticated }: Props) {
   const totalItems = drafts.articles.length + drafts.passages.length;
 
   return (
-    <div className="drafts-page">
-      <nav className="breadcrumb">
-        <Link to={`/${universeSlug}`}>← Back</Link>
-      </nav>
+    <AppShell sidebar={sidebar} sidebarOpen={sidebarOpen} onCloseSidebar={onCloseSidebar}>
+      <div className="drafts-page">
+        <nav className="breadcrumb">
+          <Link to={`/${universeSlug}`}>← Back</Link>
+        </nav>
 
-      <h1>My Drafts</h1>
+        <h1>My Drafts</h1>
 
-      {totalItems === 0 ? (
-        <p className="empty-state">
-          You haven't created any articles or passages yet.{" "}
-          <Link to={`/${universeSlug}`}>Get started!</Link>
-        </p>
-      ) : (
-        <>
-          {renderStatusSection("Draft", groupedArticles.draft, groupedPassages.draft)}
-          {renderStatusSection("Under Review", groupedArticles.review, groupedPassages.review)}
-          {renderStatusSection("Published", groupedArticles.published, groupedPassages.published)}
-          {renderStatusSection("Rejected", groupedArticles.rejected, groupedPassages.rejected)}
-        </>
-      )}
-    </div>
+        {totalItems === 0 ? (
+          <p className="empty-state">
+            You haven't created any articles or passages yet.{" "}
+            <Link to={`/${universeSlug}`}>Get started!</Link>
+          </p>
+        ) : (
+          <>
+            {renderStatusSection("Draft", groupedArticles.draft, groupedPassages.draft)}
+            {renderStatusSection("Under Review", groupedArticles.review, groupedPassages.review)}
+            {renderStatusSection("Published", groupedArticles.published, groupedPassages.published)}
+            {renderStatusSection("Rejected", groupedArticles.rejected, groupedPassages.rejected)}
+          </>
+        )}
+      </div>
+    </AppShell>
   );
 }

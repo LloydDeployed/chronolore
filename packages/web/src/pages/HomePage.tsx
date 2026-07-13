@@ -17,7 +17,7 @@ export function HomePage() {
         <h1>Chronolore</h1>
         <p className="hero-tagline">The spoiler-safe wiki.</p>
         <p className="hero-sub">
-          Set your reading progress. Browse safely. Only see what you've read.
+          Set your reading progress. Browse Spoiler Free. Only see what you've read.
         </p>
       </section>
 
@@ -34,7 +34,7 @@ export function HomePage() {
           </div>
           <div className="step">
             <span className="step-icon">🔒</span>
-            <h3>Browse Safely</h3>
+            <h3>Browse Spoiler Free</h3>
             <p>
               Articles and content are filtered to your progress. No spoiler
               warnings — hidden content is simply absent.
