@@ -169,7 +169,7 @@ export function EditArticlePage({ isAuthenticated }: Props) {
                       }))
                   : sectionsList
               }
-              infobox={previewData?.infobox ?? infobox}
+              infobox={previewData ? previewData.infobox : infobox}
             />
           )}
         </div>

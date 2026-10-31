@@ -21,6 +21,11 @@ import {
   type ProgressRequest,
 } from "../middleware/progress.js";
 import { optionalAuth, type AuthRequest } from "../middleware/auth.js";
+import {
+  collectArticleRevealPointIds,
+  orderArticleRevealPoints,
+  resolvePreviewProgress,
+} from "../domain/articlePreview.js";
 
 const router: Router = Router({ mergeParams: true });
 
@@ -92,10 +97,10 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
     .where(eq(sections.articleId, article.id));
 
   const sectionIds = articleSections.map((s) => s.id);
-  const rpIdSet = new Set<string>();
+  let passageRps: { revealPointId: string | null }[] = [];
 
   if (sectionIds.length > 0) {
-    const passageRps = await db
+    passageRps = await db
       .select({ revealPointId: passages.revealPointId })
       .from(passages)
       .where(
@@ -104,9 +109,6 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
           isNotNull(passages.revealPointId),
         ),
       );
-    for (const p of passageRps) {
-      if (p.revealPointId) rpIdSet.add(p.revealPointId);
-    }
   }
 
   // Collect from infobox fields
@@ -115,8 +117,9 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
     .from(infoboxes)
     .where(eq(infoboxes.articleId, article.id));
 
+  let fieldRps: { revealPointId: string | null }[] = [];
   if (infobox) {
-    const fieldRps = await db
+    fieldRps = await db
       .select({ revealPointId: infoboxFields.revealPointId })
       .from(infoboxFields)
       .where(
@@ -125,12 +128,10 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
           isNotNull(infoboxFields.revealPointId),
         ),
       );
-    for (const f of fieldRps) {
-      if (f.revealPointId) rpIdSet.add(f.revealPointId);
-    }
   }
 
-  if (rpIdSet.size === 0) {
+  const revealPointIds = collectArticleRevealPointIds(passageRps, fieldRps);
+  if (revealPointIds.length === 0) {
     return res.json([]);
   }
 
@@ -152,20 +153,9 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
     .innerJoin(entries, eq(entries.id, revealPoints.entryId))
     .leftJoin(series, eq(series.id, entries.seriesId))
     .leftJoin(segments, eq(segments.id, revealPoints.segmentId))
-    .where(inArray(revealPoints.id, [...rpIdSet]));
+    .where(inArray(revealPoints.id, revealPointIds));
 
-  // Sort by series → entry → segment sort_order
-  rpRows.sort((a, b) => {
-    const sa = a.seriesSortOrder ?? 0;
-    const sb = b.seriesSortOrder ?? 0;
-    if (sa !== sb) return sa - sb;
-    if (a.entrySortOrder !== b.entrySortOrder) return a.entrySortOrder - b.entrySortOrder;
-    const sga = a.segmentSortOrder ?? 0;
-    const sgb = b.segmentSortOrder ?? 0;
-    return sga - sgb;
-  });
-
-  const result = rpRows.map((r) => ({
+  const result = orderArticleRevealPoints(rpRows).map((r) => ({
     revealPointId: r.revealPointId,
     seriesName: r.seriesName ?? undefined,
     entryName: r.entryName,
@@ -240,12 +230,11 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
   // Preview progress override: authenticated contributors/moderators/admins can
   // pass X-Preview-Progress header with comma-separated reveal point IDs
   const previewProgressHeader = req.headers["x-preview-progress"] as string | undefined;
-  let rpIds: string[];
-  if (previewProgressHeader && req.userId) {
-    rpIds = previewProgressHeader.split(",").map((s) => s.trim()).filter(Boolean);
-  } else {
-    rpIds = (req as ProgressRequest).revealPointIds ?? [];
-  }
+  const { isPreview, revealPointIds: rpIds } = resolvePreviewProgress(
+    previewProgressHeader,
+    Boolean(req.userId),
+    req.revealPointIds ?? [],
+  );
 
   const [universe] = await db
     .select()
@@ -256,7 +245,6 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
 
   // In preview mode (authenticated + X-Preview-Progress), allow any status
   // Normal readers only see published articles
-  const isPreview = !!previewProgressHeader && !!req.userId;
   const articleConditions = [
     eq(articles.universeId, universe.id),
     eq(articles.slug, articleSlug),
@@ -274,8 +262,7 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
 
   // Check article is within reader's progress (null introducedAt = always visible)
   // Skip this check for preview progress (authenticated users simulating progress)
-  const isPreviewMode = !!previewProgressHeader && !!req.userId;
-  if (article.introducedAt && !isPreviewMode) {
+  if (article.introducedAt && !isPreview) {
     if (rpIds.length === 0 || !rpIds.includes(article.introducedAt)) {
       return res.status(404).json({ error: "Article not found at your current progress" });
     }
