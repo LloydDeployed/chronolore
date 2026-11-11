@@ -2,6 +2,61 @@ import { test, expect } from "@playwright/test";
 import { setProgressInBrowser } from "./helpers";
 
 test.describe("Spoiler scoping", () => {
+  test("cross-series article is available from visible content outside its original introduction series", async ({
+    page,
+  }) => {
+    await page.goto("/cosmere");
+    await setProgressInBrowser(page, "cosmere", {
+      warbreaker: "complete",
+    });
+
+    await page.goto("/cosmere/articles/hoid");
+
+    await expect(page.locator("h1", { hasText: "Hoid" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Warbreaker", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Mistborn Era 1", exact: true })).not.toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Mistborn Era 2", exact: true })).not.toBeVisible();
+
+    await setProgressInBrowser(page, "cosmere", {
+      "the-bands-of-mourning": "complete",
+    });
+    await page.reload();
+
+    await expect(page.getByRole("heading", { name: "In Mistborn Era 2", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Mistborn Era 1", exact: true })).not.toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Warbreaker", exact: true })).not.toBeVisible();
+  });
+
+  test("clears stale article content while progress-scoped content reloads", async ({ page }) => {
+    await page.goto("/cosmere");
+    await setProgressInBrowser(page, "cosmere", {
+      warbreaker: "complete",
+    });
+
+    let delayRequests = false;
+    let releaseRequest!: () => void;
+    const requestGate = new Promise<void>((resolve) => {
+      releaseRequest = resolve;
+    });
+    await page.route("**/api/universes/cosmere/articles/hoid", async (route) => {
+      if (delayRequests) await requestGate;
+      await route.continue();
+    });
+
+    await page.goto("/cosmere/articles/hoid");
+    await expect(page.getByRole("heading", { name: "In Warbreaker", exact: true })).toBeVisible();
+
+    delayRequests = true;
+    const warbreakerSeries = page.locator(".series").filter({ hasText: "Warbreaker" });
+    await warbreakerSeries.locator('input[type="checkbox"]').uncheck();
+
+    await expect(page.getByText("Loading...", { exact: true })).toBeVisible({ timeout: 300 });
+    await expect(page.getByRole("heading", { name: "In Warbreaker", exact: true })).not.toBeVisible();
+
+    releaseRequest();
+    await expect(page.getByText("Article not found at your current progress.")).toBeVisible();
+  });
+
   test("no progress shows welcome message, no articles", async ({ page }) => {
     await page.goto("/cosmere");
     await expect(page.getByText("Set your reading progress")).toBeVisible();

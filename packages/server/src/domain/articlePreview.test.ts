@@ -36,10 +36,17 @@ describe("article preview reveal points", () => {
 });
 
 describe("preview progress override", () => {
-  it("distinguishes an unavailable gated article from an evergreen article", () => {
-    assert.equal(isArticleAvailableAtProgress("chapter-1", []), false);
-    assert.equal(isArticleAvailableAtProgress("chapter-1", ["chapter-1"]), true);
-    assert.equal(isArticleAvailableAtProgress(null, []), true);
+  it("makes an article available from its introduction or any visible article content", () => {
+    assert.equal(isArticleAvailableAtProgress("mistborn-introduction", [], false), false);
+    assert.equal(
+      isArticleAvailableAtProgress("mistborn-introduction", ["mistborn-introduction"], false),
+      true,
+    );
+    assert.equal(
+      isArticleAvailableAtProgress("mistborn-introduction", ["warbreaker-appearance"], true),
+      true,
+    );
+    assert.equal(isArticleAvailableAtProgress(null, [], false), true);
   });
 
   it("treats an explicitly empty selection as preview mode with no revealed checkpoints", () => {

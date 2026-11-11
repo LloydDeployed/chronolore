@@ -66,10 +66,20 @@ export function ArticleView({ universeSlug, articleSlug, progressKey, currentUse
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setArticle(null);
     setError(null);
     getArticle(universeSlug, articleSlug)
-      .then(setArticle)
-      .catch(() => setError("Article not found at your current progress."));
+      .then((nextArticle) => {
+        if (!cancelled) setArticle(nextArticle);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Article not found at your current progress.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [universeSlug, articleSlug, progressKey]);
 
   if (error) return <div className="article-error">{error}</div>;

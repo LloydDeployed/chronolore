@@ -266,14 +266,6 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
 
   if (!article) return res.status(404).json({ error: "Article not found" });
 
-  // Check article is within reader's progress (null introducedAt = always visible)
-  // Skip this check for preview progress (authenticated users simulating progress)
-  if (article.introducedAt && !isPreview) {
-    if (rpIds.length === 0 || !rpIds.includes(article.introducedAt)) {
-      return res.status(404).json({ error: "Article not found at your current progress" });
-    }
-  }
-
   const [type] = await db
     .select()
     .from(articleTypes)
@@ -410,10 +402,22 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
   }
 
   const enrichedSections = pruneEmpty(tree);
+  const availableAtProgress = isArticleAvailableAtProgress(
+    article.introducedAt,
+    rpIds,
+    resolvedPassages.length > 0 || visibleFields.length > 0,
+  );
+
+  // Cross-series articles can become available through content outside the
+  // series containing their original introduction. Delay the reader gate until
+  // after progress-filtered content is resolved so those appearances count.
+  if (!isPreview && !availableAtProgress) {
+    return res.status(404).json({ error: "Article not found at your current progress" });
+  }
 
   res.json({
     ...article,
-    availableAtProgress: isArticleAvailableAtProgress(article.introducedAt, rpIds),
+    availableAtProgress,
     articleType: type,
     sections: enrichedSections,
     infobox: infobox

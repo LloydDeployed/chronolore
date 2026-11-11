@@ -58,4 +58,24 @@ test.describe("article preview progress", () => {
       )
       .toBe(JSON.stringify({ cosmere: { "the-final-empire": "complete" } }));
   });
+
+  test("shows cross-series Hoid content without requiring his Mistborn introduction", async ({
+    page,
+  }) => {
+    const admin = await loginUser(page, "admin@chronolore.dev", "chronolore");
+    await page.goto("/");
+    await setAuthInBrowser(page, admin.token, admin.user);
+
+    await page.goto("/cosmere/articles/hoid/edit");
+    await page.getByRole("button", { name: "Preview" }).click();
+    const picker = page.locator(".preview-progress-picker");
+
+    await expect(page.getByText("This article is not available at the simulated progress.")).toBeVisible();
+
+    const warbreaker = picker.locator(".picker-group").filter({ hasText: "Warbreaker" });
+    await warbreaker.getByRole("checkbox", { name: "Epilogue", exact: true }).check();
+    await expect(page.locator("h1", { hasText: "Hoid" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Warbreaker", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "In Mistborn Era 1", exact: true })).not.toBeVisible();
+  });
 });

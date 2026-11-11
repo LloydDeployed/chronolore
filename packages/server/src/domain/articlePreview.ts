@@ -30,8 +30,11 @@ export function collectArticleRevealPointIds(
 export function isArticleAvailableAtProgress(
   introducedAt: string | null,
   revealPointIds: string[],
+  hasVisibleContent: boolean,
 ): boolean {
-  return introducedAt === null || revealPointIds.includes(introducedAt);
+  return introducedAt === null
+    || revealPointIds.includes(introducedAt)
+    || hasVisibleContent;
 }
 
 export function orderArticleRevealPoints<T extends ArticleRevealPoint>(rows: T[]): T[] {
