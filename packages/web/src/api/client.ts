@@ -81,6 +81,7 @@ export const getArticleForEdit = (universeSlug: string, articleSlug: string) =>
 export const getArticleRevealPoints = (universeSlug: string, articleSlug: string) =>
   fetchJson<Array<{
     revealPointId: string;
+    entryId: string;
     seriesName?: string;
     entryName: string;
     segmentName?: string;

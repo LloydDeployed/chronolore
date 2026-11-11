@@ -32,10 +32,19 @@ test.describe("article preview progress", () => {
     ]);
     await expect(picker.getByText("Chapter 2", { exact: true })).toHaveCount(0);
 
+    await expect(page.getByText("This article is not available at the simulated progress.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Kelsier", exact: true })).not.toBeVisible();
     await expect(page.getByText("most infamous thief in the Final Empire")).not.toBeVisible();
-    await picker.getByLabel("Chapter 1").check();
+    await picker.getByRole("checkbox", { name: "Chapter 3", exact: true }).check();
+    await expect(picker.getByRole("checkbox", { name: "Chapter 1", exact: true })).toBeChecked();
+    await expect(picker.getByRole("checkbox", { name: "Chapter 3", exact: true })).toBeChecked();
     await expect(page.getByText("most infamous thief in the Final Empire")).toBeVisible();
-    await expect(page.getByText("Survivor of Hathsin", { exact: true })).not.toBeVisible();
+    await expect(page.getByText("Survivor of Hathsin", { exact: true })).toBeVisible();
+
+    await picker.getByRole("checkbox", { name: "Chapter 1", exact: true }).uncheck();
+    await expect(picker.getByRole("checkbox", { name: "Chapter 1", exact: true })).not.toBeChecked();
+    await expect(picker.getByRole("checkbox", { name: "Chapter 3", exact: true })).not.toBeChecked();
+    await expect(page.getByText("This article is not available at the simulated progress.")).toBeVisible();
 
     await picker.getByRole("button", { name: "All" }).click();
     await expect(page.getByText("Survivor of Hathsin", { exact: true })).toBeVisible();

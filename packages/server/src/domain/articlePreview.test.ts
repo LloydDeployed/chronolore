@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   collectArticleRevealPointIds,
+  isArticleAvailableAtProgress,
   orderArticleRevealPoints,
   resolvePreviewProgress,
 } from "./articlePreview.js";
@@ -12,8 +13,9 @@ describe("article preview reveal points", () => {
       collectArticleRevealPointIds(
         [{ revealPointId: "chapter-3" }, { revealPointId: null }, { revealPointId: "chapter-1" }],
         [{ revealPointId: "chapter-1" }, { revealPointId: "chapter-38" }],
+        { revealPointId: "prologue" },
       ),
-      ["chapter-3", "chapter-1", "chapter-38"],
+      ["prologue", "chapter-3", "chapter-1", "chapter-38"],
     );
   });
 
@@ -34,6 +36,12 @@ describe("article preview reveal points", () => {
 });
 
 describe("preview progress override", () => {
+  it("distinguishes an unavailable gated article from an evergreen article", () => {
+    assert.equal(isArticleAvailableAtProgress("chapter-1", []), false);
+    assert.equal(isArticleAvailableAtProgress("chapter-1", ["chapter-1"]), true);
+    assert.equal(isArticleAvailableAtProgress(null, []), true);
+  });
+
   it("treats an explicitly empty selection as preview mode with no revealed checkpoints", () => {
     assert.deepEqual(resolvePreviewProgress("", true, ["persisted-reader-progress"]), {
       isPreview: true,

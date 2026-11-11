@@ -124,7 +124,7 @@ export function EditArticlePage({ isAuthenticated }: Props) {
   };
 
   return (
-    <div className="edit-page">
+    <div className={`edit-page edit-page--${mode}`}>
       <nav className="breadcrumb">
         <Link to={`/${universeSlug}/articles/${articleSlug}`}>← Back to article</Link>
       </nav>
@@ -155,6 +155,14 @@ export function EditArticlePage({ isAuthenticated }: Props) {
           />
           {previewLoading ? (
             <p className="loading-text">Loading preview…</p>
+          ) : previewData?.availableAtProgress === false ? (
+            <section className="preview-unavailable" role="status">
+              <h2>Article unavailable</h2>
+              <p>This article is not available at the simulated progress.</p>
+              <p className="preview-unavailable__hint">
+                Select the point where the article is introduced, or a later point in the same book.
+              </p>
+            </section>
           ) : (
             <ArticlePreview
               title={article.title}

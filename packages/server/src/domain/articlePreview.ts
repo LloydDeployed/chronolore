@@ -18,12 +18,20 @@ export interface ArticleRevealPoint {
 export function collectArticleRevealPointIds(
   passages: RevealPointReference[],
   infoboxFields: RevealPointReference[],
+  articleIntroduction?: RevealPointReference,
 ): string[] {
   const ids = new Set<string>();
-  for (const item of [...passages, ...infoboxFields]) {
-    if (item.revealPointId) ids.add(item.revealPointId);
+  for (const item of [articleIntroduction, ...passages, ...infoboxFields]) {
+    if (item?.revealPointId) ids.add(item.revealPointId);
   }
   return [...ids];
+}
+
+export function isArticleAvailableAtProgress(
+  introducedAt: string | null,
+  revealPointIds: string[],
+): boolean {
+  return introducedAt === null || revealPointIds.includes(introducedAt);
 }
 
 export function orderArticleRevealPoints<T extends ArticleRevealPoint>(rows: T[]): T[] {

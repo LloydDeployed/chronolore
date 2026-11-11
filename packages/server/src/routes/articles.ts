@@ -23,6 +23,7 @@ import {
 import { optionalAuth, type AuthRequest } from "../middleware/auth.js";
 import {
   collectArticleRevealPointIds,
+  isArticleAvailableAtProgress,
   orderArticleRevealPoints,
   resolvePreviewProgress,
 } from "../domain/articlePreview.js";
@@ -130,7 +131,11 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
       );
   }
 
-  const revealPointIds = collectArticleRevealPointIds(passageRps, fieldRps);
+  const revealPointIds = collectArticleRevealPointIds(
+    passageRps,
+    fieldRps,
+    { revealPointId: article.introducedAt },
+  );
   if (revealPointIds.length === 0) {
     return res.json([]);
   }
@@ -157,6 +162,7 @@ router.get("/:articleSlug/reveal-points", optionalAuth, async (req: AuthRequest,
 
   const result = orderArticleRevealPoints(rpRows).map((r) => ({
     revealPointId: r.revealPointId,
+    entryId: r.entryId,
     seriesName: r.seriesName ?? undefined,
     entryName: r.entryName,
     segmentName: r.segmentName ?? undefined,
@@ -407,6 +413,7 @@ router.get("/:articleSlug", optionalAuth, async (req: AuthRequest & ProgressRequ
 
   res.json({
     ...article,
+    availableAtProgress: isArticleAvailableAtProgress(article.introducedAt, rpIds),
     articleType: type,
     sections: enrichedSections,
     infobox: infobox
